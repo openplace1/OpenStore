@@ -12,7 +12,10 @@ includes an OPK URL, its SHA-256 digest and a monotonically increasing
 | `apps` | Array of published package entries (maximum 64 on device) |
 | `id`, `name`, `scope` | Must agree with the OPK manifest |
 | `version`, `versionCode` | Display version and update ordering |
-| `summary` | Optional description, maximum 240 bytes |
+| `developer` | Publisher name, maximum 64 characters |
+| `summary` | Store-card description, maximum 50 characters |
+| `description` | Detail-page text, maximum 10,000 UTF-8 bytes |
+| `appColor` | Icon colour in `#RRGGBB` form |
 | `url` | HTTPS URL of the OPK |
 | `sha256` | Lowercase SHA-256 of the complete OPK file |
 
@@ -43,7 +46,9 @@ the ZIP. OSA code accesses its package files through `asset.*`.
 ## Build and publish
 
 Set `packageBaseUrl` in [`build.json`](build.json) to the public directory that
-will contain generated OPK files. Add the manifest and source files, then run:
+will contain generated OPK files. Every package entry also supplies
+`developer`, `summary`, `description` and `appColor`. Add the manifest and
+source files, then run:
 
 ```text
 python tools/build_opk.py

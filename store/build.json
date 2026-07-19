@@ -6,7 +6,10 @@
       "files": {
         "app.osa": "sd_content/paint.osa"
       },
-      "summary": "A simple touch drawing app for OpenOS."
+      "developer": "openplace1",
+      "summary": "A simple touch drawing app for OpenOS.",
+      "description": "Paint is a lightweight drawing application made for OpenOS. Draw directly on the touchscreen, choose a color and adjust the brush size. The interface is designed for the 240 x 320 display and works entirely offline after installation.",
+      "appColor": "#FF3B30"
     }
   ]
 }

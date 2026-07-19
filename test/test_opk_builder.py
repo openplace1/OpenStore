@@ -27,6 +27,13 @@ class OpkBuilderTests(unittest.TestCase):
         self.assertGreater(len(catalog["apps"]), 0)
 
         for item in catalog["apps"]:
+            self.assertGreater(len(item["developer"]), 0)
+            self.assertLessEqual(len(item["developer"]), 64)
+            self.assertGreater(len(item["summary"]), 0)
+            self.assertLessEqual(len(item["summary"]), 50)
+            self.assertGreater(len(item["description"]), 0)
+            self.assertLessEqual(len(item["description"].encode("utf-8")), 10000)
+            self.assertRegex(item["appColor"], r"^#[0-9A-F]{6}$")
             package_path = ROOT / "store" / "packages" / f"{item['id']}.opk"
             self.assertLessEqual(package_path.stat().st_size, build_opk.MAX_PACKAGE_BYTES)
             digest = hashlib.sha256(package_path.read_bytes()).hexdigest()

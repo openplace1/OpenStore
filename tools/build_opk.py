@@ -30,6 +30,7 @@ MAX_OSA_LINE_BYTES = 768
 MAX_OSAC_BYTES = 96 * 1024
 
 ID_PATTERN = re.compile(r"[a-z0-9._-]{1,48}\Z")
+COLOR_PATTERN = re.compile(r"#[0-9A-Fa-f]{6}\Z")
 SYSTEM_IDS = {
     "openos.home",
     "openos.lockscreen",
@@ -213,16 +214,32 @@ def build_package(package: Any, seen_ids: set[str], base_url: str) -> dict[str, 
 
     digest = sha256_file(output_path)
     print(f"Built {output_path.relative_to(ROOT)}  sha256={digest}")
-    summary = package.get("summary", "")
-    require(isinstance(summary, str) and len(summary) <= 240,
-            f"{package_id}: summary must be at most 240 characters")
+    developer = package.get("developer")
+    summary = package.get("summary")
+    description = package.get("description")
+    app_color = package.get("appColor")
+    require(isinstance(developer, str) and 0 < len(developer) <= 64 and
+            "\n" not in developer and "\r" not in developer,
+            f"{package_id}: developer must contain 1-64 characters on one line")
+    require(isinstance(summary, str) and 0 < len(summary) <= 50 and
+            "\n" not in summary and "\r" not in summary,
+            f"{package_id}: summary must contain 1-50 characters on one line")
+    require(isinstance(description, str) and 0 < len(description) <= 10000 and
+            len(description.encode("utf-8")) <= 10000 and
+            not any(ord(char) < 0x20 and char not in "\n\r\t" for char in description),
+            f"{package_id}: description must contain 1-10000 UTF-8 bytes")
+    require(isinstance(app_color, str) and COLOR_PATTERN.fullmatch(app_color) is not None,
+            f"{package_id}: appColor must be #RRGGBB")
     return {
         "id": package_id,
         "name": manifest["name"],
         "version": manifest["version"],
         "versionCode": manifest["versionCode"],
         "scope": manifest["scope"],
+        "developer": developer,
         "summary": summary,
+        "description": description,
+        "appColor": app_color.upper(),
         "url": f"{base_url}/{output_path.name}",
         "sha256": digest,
     }
