@@ -1,0 +1,12 @@
+{
+  "packageBaseUrl": "https://raw.githubusercontent.com/openplace1/OpenStore/main/store/packages",
+  "packages": [
+    {
+      "manifest": "store/manifests/openplace.paint.json",
+      "files": {
+        "app.osa": "sd_content/paint.osa"
+      },
+      "summary": "A simple touch drawing app for OpenOS."
+    }
+  ]
+}
