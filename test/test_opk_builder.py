@@ -5,7 +5,7 @@ import importlib.util
 import json
 import unittest
 from pathlib import Path
-from zipfile import ZipFile
+from zipfile import ZIP_STORED, ZipFile
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,7 +40,7 @@ class OpkBuilderTests(unittest.TestCase):
                 folded_names: set[str] = set()
                 for info in infos:
                     self.assertLessEqual(info.file_size, build_opk.MAX_FILE_BYTES)
-                    self.assertIn(info.compress_type, (0, 8))
+                    self.assertEqual(info.compress_type, ZIP_STORED)
                     self.assertEqual(info.flag_bits & 0x0009, 0)
                     build_opk.safe_archive_path(info.filename)
                     folded = info.filename.casefold()

@@ -10,7 +10,7 @@ import re
 from pathlib import Path, PurePosixPath
 from typing import Any, NoReturn
 from urllib.parse import urlsplit
-from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
+from zipfile import ZIP_STORED, ZipFile, ZipInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -126,7 +126,10 @@ def validate_manifest(value: Any, source_name: str) -> dict[str, Any]:
 
 def zip_info(name: str) -> ZipInfo:
     info = ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
-    info.compress_type = ZIP_DEFLATED
+    # Classic ESP32 boards without PSRAM cannot reliably reserve the roughly
+    # 44 KB of contiguous heap required by a DEFLATE decoder. Stored entries
+    # are copied to the SD card in small chunks by the OpenOS installer.
+    info.compress_type = ZIP_STORED
     info.create_system = 3
     info.external_attr = 0o100644 << 16
     return info
@@ -197,12 +200,13 @@ def build_package(package: Any, seen_ids: set[str], base_url: str) -> dict[str, 
     output_path = OUTPUT / f"{package_id}.opk"
     temporary = output_path.with_suffix(".opk.tmp")
     try:
-        with ZipFile(temporary, "w", allowZip64=False, compresslevel=9) as archive:
+        with ZipFile(temporary, "w", compression=ZIP_STORED,
+                     allowZip64=False) as archive:
             archive.writestr(zip_info("manifest.json"), manifest_bytes)
             for archive_name, source, _ in sorted(files):
                 archive.writestr(zip_info(archive_name), source.read_bytes())
         require(temporary.stat().st_size <= MAX_PACKAGE_BYTES,
-                f"{package_id}: compressed OPK exceeds 8 MB")
+                f"{package_id}: OPK exceeds 8 MB")
         os.replace(temporary, output_path)
     finally:
         temporary.unlink(missing_ok=True)

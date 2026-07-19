@@ -22,6 +22,10 @@ An `.opk` is a standard ZIP archive with a different extension. ZIP methods
 `stored` (0) and `deflate` (8) are supported. The archive must contain exactly
 one `manifest.json` at its root.
 
+The supplied builder always uses `stored` entries. This lets ESP32 boards
+without PSRAM install packages by streaming them directly to the SD card,
+without allocating the roughly 44 KB working buffer required by DEFLATE.
+
 | Manifest field | Type | Meaning |
 |---|---:|---|
 | `schema` | integer | Package schema, currently `1` |
