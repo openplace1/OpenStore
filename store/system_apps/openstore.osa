@@ -19,7 +19,10 @@ var startScroll = 0
 var lastX = 0
 var lastY = 0
 var redraw = 1
+var lastFrame = 0
+var smooth = 0
 var detailText = ""
+var detailHeight = 0
 var bgColor = theme.bg()
 var cardColor = theme.surface()
 var mainColor = theme.text()
@@ -34,55 +37,15 @@ def drainTouch()
 end
 
 def stateFor(item)
-  var appId = store.id(item)
-  var local = store.versionCode(appId)
-  var remote = store.remoteVersionCode(item)
-  if local == 0 then
-    if store.scope(item) == "system" then
-      return 1
-    end
-    return 0
-  end
-  if local < remote then
-    return 1
-  end
-  if local == remote then
-    return 2
-  end
-  return 3
-end
-
-def matchesTab(item)
-  if tab == 0 and store.scope(item) == "user" then
-    return 1
-  end
-  if tab == 1 and store.scope(item) == "system" then
-    return 1
-  end
-  return 0
+  return store.state(item)
 end
 
 def visibleCount()
-  var total = 0
-  var i = 0
-  while i < count do
-    if matchesTab(i) == 1 then total = total + 1 end
-    i = i + 1
-  end
-  return total
+  return store.visibleCount(tab)
 end
 
 def itemAt(slot)
-  var seen = 0
-  var i = 0
-  while i < count do
-    if matchesTab(i) == 1 then
-      if seen == slot then return i end
-      seen = seen + 1
-    end
-    i = i + 1
-  end
-  return -1
+  return store.visibleItem(tab, slot)
 end
 
 def stateLabel(state)
@@ -112,13 +75,7 @@ def drawGet(item, x, y)
 end
 
 def canUninstall(item)
-  if store.scope(item) != "user" then
-    return 0
-  end
-  if store.versionCode(store.id(item)) > 0 then
-    return 1
-  end
-  return 0
+  return store.canUninstall(item)
 end
 
 def drawUninstall(item, x, y)
@@ -177,8 +134,8 @@ def drawTabs()
   if tab == 1 then rrect(142, 315, 76, 3, 2) end
 end
 
-def drawCard(item, y)
-  if y >= 282 or y + 130 <= 40 then
+def drawCard(item, y, clipTop, clipBottom)
+  if y >= clipBottom or y + 130 <= clipTop then
     return
   end
   setcolor565(cardColor)
@@ -207,7 +164,7 @@ def drawCard(item, y)
   drawActions(item, 16, y + 90)
 end
 
-def drawList()
+def drawListLayer(clipTop, clipBottom)
   setcolor565(bgColor)
   rect(0, 40, 240, 242)
   var shown = visibleCount()
@@ -220,7 +177,7 @@ def drawList()
   var slot = first
   while slot < shown and slot < first + 3 do
     var item = itemAt(slot)
-    if item >= 0 then drawCard(item, 46 + slot * 140 - scrollY) end
+    if item >= 0 then drawCard(item, 46 + slot * 140 - scrollY, clipTop, clipBottom) end
     slot = slot + 1
   end
   if shown == 0 then
@@ -230,48 +187,105 @@ def drawList()
     if tab == 1 then textc(120, 150, "No system updates available") end
   end
   drawScrollBar(40, 242, max(content, 242))
+end
+
+def drawList()
+  if smooth == 1 then
+    var shown = visibleCount()
+    var content = max(0, shown * 140 - 10)
+    maxScroll = max(0, content - 236)
+    if scrollY > maxScroll then scrollY = maxScroll end
+    var first = int(scrollY / 140)
+    var slot = first
+    var slotY = 46 + first * 140 - scrollY
+    var firstY = slotY
+    gfx.unstash()
+    while slotY < 282 do
+      gfx.origin(0, 0 - slotY)
+      setcolor565(bgColor)
+      rect(0, slotY, 240, 140)
+      var item = itemAt(slot)
+      if item >= 0 then drawCard(item, slotY, slotY, slotY + 140) end
+      gfx.pushClip(0, slotY, 0, 40, 240, 242)
+      slot = slot + 1
+      slotY = slotY + 140
+    end
+    gfx.stash()
+    if firstY > 40 then
+      setcolor565(bgColor)
+      rect(0, 40, 240, firstY - 40)
+    end
+    if shown == 0 then
+      textcolor565(subColor)
+      fontsize(2)
+      if tab == 0 then textc(120, 150, "No apps available") end
+      if tab == 1 then textc(120, 150, "No system updates available") end
+    end
+    drawScrollBar(40, 242, max(content, 242))
+  else
+    drawListLayer(40, 282)
+  end
   drawTabs()
   ui.header("OpenStore")
 end
 
-def drawDetail()
+def drawDetailLayer(clipTop, clipBottom)
   setcolor565(bgColor)
   rect(0, 50, 240, 270)
   var top = 62 - scrollY
-  var appName = store.name(chosen)
-  var letter = upper(substr(appName, 0, 1))
-  if len(letter) == 0 then
-    letter = "?"
+  if top < clipBottom and top + 176 > clipTop then
+    var appName = store.name(chosen)
+    var letter = upper(substr(appName, 0, 1))
+    if len(letter) == 0 then letter = "?" end
+    setcolor565(store.color(chosen))
+    rrect(14, top, 72, 72, 15)
+    textcolor(255, 255, 255)
+    fontsize(4)
+    textc(50, top + 36, letter)
+    fontsize(2)
+    textcolor565(mainColor)
+    textml(98, top + 15, textfit(appName, 128))
+    fontsize(1)
+    textcolor565(subColor)
+    textml(98, top + 36, textfit(store.developer(chosen), 128))
+    textml(98, top + 54, "Version " + store.remoteVersion(chosen))
+    drawActions(chosen, 18, top + 84)
   end
-
-  setcolor565(store.color(chosen))
-  rrect(14, top, 72, 72, 15)
-  textcolor(255, 255, 255)
-  fontsize(4)
-  textc(50, top + 36, letter)
-
-  fontsize(2)
-  textcolor565(mainColor)
-  textml(98, top + 15, textfit(appName, 128))
-  fontsize(1)
-  textcolor565(subColor)
-  textml(98, top + 36, textfit(store.developer(chosen), 128))
-  textml(98, top + 54, "Version " + store.remoteVersion(chosen))
-  drawActions(chosen, 18, top + 84)
-
-  textcolor565(mainColor)
-  fontsize(2)
-  text(14, 188 - scrollY, "About this app")
-  fontsize(1)
-  textcolor565(subColor)
-  var descHeight = textblock(14, 216, 212, detailText, 13, scrollY, 51, 318, 0)
-  var content = 186 + descHeight
+  if 188 - scrollY < clipBottom and 206 - scrollY > clipTop then
+    textcolor565(mainColor)
+    fontsize(2)
+    text(14, 188 - scrollY, "About this app")
+  end
+  var descTop = 216 - scrollY
+  if descTop < clipBottom and descTop + detailHeight > clipTop then
+    fontsize(1)
+    textcolor565(subColor)
+    var lineLimit = int((scrollY + clipBottom - 216) / 13) + 2
+    if lineLimit < 1 then lineLimit = 1 end
+    textblock(14, 216, 212, detailText, 13, scrollY, clipTop, clipBottom, lineLimit)
+  end
+  var content = 186 + detailHeight
   maxScroll = max(0, content - 270)
   if scrollY > maxScroll then
     scrollY = maxScroll
     redraw = 1
   end
   drawScrollBar(50, 270, max(content, 270))
+end
+
+def drawDetail()
+  if smooth == 1 then
+    gfx.unstash()
+    gfx.origin(0, -50)
+    drawDetailLayer(50, 190)
+    gfx.push(0, 50)
+    gfx.origin(0, -190)
+    drawDetailLayer(190, 320)
+    gfx.push(0, 190)
+    gfx.stash()
+  else
+    drawDetailLayer(50, 320)
+  end
   ui.backHeader("OpenStore")
 end
 
@@ -309,6 +323,8 @@ def installItem(item)
   var url = store.url(item)
   var sha = store.sha256(item)
   var scope = store.scope(item)
+  if smooth == 1 then gfx.end() end
+  smooth = 0
   var ok = store.install(url, sha, appId, scope, 1)
   if ok == 1 then
     if scope == "system" then
@@ -330,7 +346,11 @@ def installItem(item)
   end
   if view == 1 and item < count then
     detailText = store.description(item)
+    fontsize(1)
+    detailHeight = textblock(14, 216, 212, detailText, 13, 0, 0, 0, 0)
   end
+  smooth = gfx.begin(240, 140, 8)
+  if smooth == 1 then gfx.stash() end
   redraw = 1
 end
 
@@ -358,6 +378,8 @@ def openDetail(item)
   if tab == 1 then systemScroll = scrollY end
   chosen = item
   detailText = store.description(item)
+  fontsize(1)
+  detailHeight = textblock(14, 216, 212, detailText, 13, 0, 0, 0, 0)
   view = 1
   scrollY = 0
   maxScroll = 0
@@ -405,6 +427,7 @@ def tapDetail(px, py)
     if tab == 1 then scrollY = systemScroll end
     maxScroll = 0
     detailText = ""
+    detailHeight = 0
     redraw = 1
     return
   end
@@ -419,15 +442,20 @@ end
 
 drainTouch()
 refreshCatalog()
+smooth = gfx.begin(240, 140, 8)
+if smooth == 1 then gfx.stash() end
 redraw = 1
 
 loop
   if redraw == 1 then
-    redraw = 0
-    if view == 0 then
-      drawList()
-    else
-      drawDetail()
+    if pressed == 0 or millis() - lastFrame >= 28 then
+      redraw = 0
+      if view == 0 then
+        drawList()
+      else
+        drawDetail()
+      end
+      lastFrame = millis()
     end
   end
 
@@ -467,5 +495,6 @@ loop
       end
     end
   end
-  wait(12)
+  if pressed == 1 then wait(3) end
+  if pressed == 0 then wait(10) end
 end

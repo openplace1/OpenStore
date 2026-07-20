@@ -286,15 +286,17 @@ loop
               drawAll()
             end
             if pick == 2 then
-              home.makeFolder(idx)
-              notify("Created folder")
+              var made = home.makeFolder(idx)
+              if made == 1 then notify("Created folder") end
+              if made == 0 then ui.alert("Folder", "Not enough memory to create the folder.") end
               drawAll()
             end
             if pick == 3 then
               var removingFolder = home.appIsFolder(idx)
               if removingFolder == 1 then
-                home.deleteFolder(idx)
-                notify("Deleted folder")
+                var deleted = home.deleteFolder(idx)
+                if deleted == 1 then notify("Deleted folder") end
+                if deleted == 0 then ui.alert("Folder not deleted", "There are not enough free Home slots for its apps.") end
               end
               if removingFolder == 0 then
                 var removedName = home.appName(idx)
@@ -363,8 +365,9 @@ loop
           end
           if idx != src then
             if home.appIsFolder(idx) == 1 then
-              home.addToFolder(idx, src)
-              notify("Moved into folder")
+              var moved = home.addToFolder(idx, src)
+              if moved == 1 then notify("Moved into folder") end
+              if moved == 0 then ui.alert("Move failed", "The folder is full or memory is low.") end
             end
             if home.appIsFolder(idx) == 0 then
               home.swap(src, idx)
