@@ -16,6 +16,7 @@ from zipfile import ZIP_STORED, ZipFile, ZipInfo
 ROOT = Path(__file__).resolve().parents[1]
 STORE = ROOT / "store"
 OUTPUT = STORE / "packages"
+APPS_DIR = ROOT / "apps"
 DEFAULT_PACKAGE_BASE = "https://raw.githubusercontent.com/openplace1/OpenOS/main/store/packages"
 
 MAX_PACKAGE_BYTES = 8 * 1024 * 1024
@@ -144,6 +145,173 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+# ---------------------------------------------------------------------------
+# Interactive .osa discovery
+# ---------------------------------------------------------------------------
+
+def prompt_str(label: str, *, max_len: int, allow_empty: bool = False) -> str:
+    while True:
+        raw = input(f"  {label}: ").strip()
+        if not raw and not allow_empty:
+            print(f"    -> {label} cannot be empty, try again")
+            continue
+        if len(raw.encode("utf-8")) > max_len:
+            print(f"    -> {label} exceeds {max_len} bytes, try again")
+            continue
+        if "\n" in raw or "\r" in raw:
+            print(f"    -> {label} must be a single line")
+            continue
+        return raw
+
+
+def prompt_id(existing_ids: set[str]) -> str:
+    while True:
+        raw = input("  id (e.g. jan.paint): ").strip()
+        if ID_PATTERN.fullmatch(raw) is None:
+            print("    -> id must match [a-z0-9._-]{1,48}")
+            continue
+        if raw in existing_ids:
+            print(f"    -> id {raw!r} is already in use, choose another")
+            continue
+        return raw
+
+
+def prompt_version() -> str:
+    return prompt_str("version (e.g. 1.0)", max_len=24)
+
+
+def prompt_version_code() -> int:
+    while True:
+        raw = input("  versionCode (positive integer): ").strip()
+        try:
+            value = int(raw)
+        except ValueError:
+            print("    -> this must be an integer")
+            continue
+        if value < 1:
+            print("    -> versionCode must be >= 1")
+            continue
+        return value
+
+
+def prompt_color() -> str:
+    while True:
+        raw = input("  appColor (#RRGGBB): ").strip()
+        if COLOR_PATTERN.fullmatch(raw) is None:
+            print("    -> color must be in #RRGGBB format")
+            continue
+        return raw.upper()
+
+
+def prompt_scope() -> str:
+    while True:
+        raw = input("  scope (user/system) [user]: ").strip().lower() or "user"
+        if raw not in ("user", "system"):
+            print("    -> scope must be 'user' or 'system'")
+            continue
+        return raw
+
+
+def prompt_is_app() -> bool:
+    while True:
+        raw = input("  isApp (y/n) [y]: ").strip().lower() or "y"
+        if raw in ("y", "yes"):
+            return True
+        if raw in ("n", "no"):
+            return False
+        print("    -> answer y/n")
+
+
+def collect_metadata_for(osa_path: Path, existing_ids: set[str]) -> dict[str, Any]:
+    print(f"\nNew/changed file: {osa_path.relative_to(ROOT)}")
+    package_id = prompt_id(existing_ids)
+    name = prompt_str("name (1-48 characters)", max_len=48)
+    summary = prompt_str("summary (1-50 characters)", max_len=50)
+    description = prompt_str("description (1-10000 bytes)", max_len=10000)
+    developer = prompt_str("developer (1-64 characters)", max_len=64)
+    version = prompt_version()
+    version_code = prompt_version_code()
+    app_color = prompt_color()
+    scope = prompt_scope()
+    is_app = prompt_is_app()
+    return {
+        "id": package_id,
+        "name": name,
+        "summary": summary,
+        "description": description,
+        "developer": developer,
+        "version": version,
+        "versionCode": version_code,
+        "appColor": app_color,
+        "scope": scope,
+        "isApp": is_app,
+    }
+
+
+def discover_apps(config: dict[str, Any]) -> None:
+    """Scan APPS_DIR for *.osa files, prompting for metadata on new/changed
+    files, and rewrite config["packages"] with auto-generated manifest/files
+    entries. Mutates config in place.
+    """
+    require(APPS_DIR.is_dir(), f"apps directory not found: {APPS_DIR}")
+
+    cache: dict[str, Any] = config.setdefault("appsCache", {})
+    osa_files = sorted(APPS_DIR.glob("*.osa"))
+    require(bool(osa_files), f"no .osa files found in {APPS_DIR}")
+
+    existing_ids = {
+        entry["id"]
+        for entry in cache.values()
+        if isinstance(entry, dict) and isinstance(entry.get("id"), str)
+    }
+
+    packages: list[dict[str, Any]] = []
+    for osa_path in osa_files:
+        rel = str(osa_path.relative_to(ROOT))
+        digest = sha256_file(osa_path)
+        cached = cache.get(rel)
+
+        if isinstance(cached, dict) and cached.get("sha256") == digest:
+            metadata = cached["metadata"]
+            package_id = metadata["id"]
+        else:
+            # Free up this file's own previous id (if any) before checking
+            # for collisions, so re-running on the same file doesn't block
+            # on itself when nothing else changed but content did.
+            previous_id = cached["metadata"]["id"] if isinstance(cached, dict) else None
+            candidate_ids = existing_ids - ({previous_id} if previous_id else set())
+            metadata = collect_metadata_for(osa_path, candidate_ids)
+            package_id = metadata["id"]
+            existing_ids.add(package_id)
+            cache[rel] = {"sha256": digest, "metadata": metadata}
+
+        manifest = {
+            "schema": 1,
+            "id": metadata["id"],
+            "name": metadata["name"],
+            "version": metadata["version"],
+            "versionCode": metadata["versionCode"],
+            "entry": osa_path.name,
+            "scope": metadata["scope"],
+            "isApp": metadata["isApp"],
+        }
+        manifest_path = APPS_DIR / f"{osa_path.stem}.manifest.json"
+        manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+
+        packages.append({
+            "manifest": str(manifest_path.relative_to(ROOT)),
+            "files": {osa_path.name: str(osa_path.relative_to(ROOT))},
+            "developer": metadata["developer"],
+            "summary": metadata["summary"],
+            "description": metadata["description"],
+            "appColor": metadata["appColor"],
+        })
+
+    config["packages"] = packages
+
+
 def build_package(package: Any, seen_ids: set[str], base_url: str) -> dict[str, object]:
     require(isinstance(package, dict), "each build.json package must be an object")
     manifest_file = source_path(package.get("manifest"))
@@ -204,7 +372,7 @@ def build_package(package: Any, seen_ids: set[str], base_url: str) -> dict[str, 
         with ZipFile(temporary, "w", compression=ZIP_STORED,
                      allowZip64=False) as archive:
             archive.writestr(zip_info("manifest.json"), manifest_bytes)
-            for archive_name, source, _ in sorted(files):
+            for archive_name, source, _ in sorted(files, key=lambda item: item[0]):
                 archive.writestr(zip_info(archive_name), source.read_bytes())
         require(temporary.stat().st_size <= MAX_PACKAGE_BYTES,
                 f"{package_id}: OPK exceeds 8 MB")
@@ -246,12 +414,25 @@ def build_package(package: Any, seen_ids: set[str], base_url: str) -> dict[str, 
 
 
 def main() -> None:
+    build_json_path = STORE / "build.json"
     try:
-        config = json.loads((STORE / "build.json").read_text(encoding="utf-8"))
+        config = json.loads(build_json_path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        config = {}
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         fail(f"could not read store/build.json: {exc}")
-    require(isinstance(config, dict) and isinstance(config.get("packages"), list),
-            "build.json must contain a packages array")
+    require(isinstance(config, dict), "build.json must contain an object")
+
+    discover_apps(config)
+
+    # Persist the cache (and freshly generated packages list) immediately so
+    # that manifest generation and metadata prompts are never repeated after
+    # a later validation failure.
+    build_json_path.write_text(
+        json.dumps(config, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+
+    require(isinstance(config.get("packages"), list), "build.json must contain a packages array")
     base_url = package_base_url(config.get("packageBaseUrl", DEFAULT_PACKAGE_BASE))
 
     seen_ids: set[str] = set()

@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "id": "openplace1.snake",
+  "name": "Snake",
+  "version": "1.0",
+  "versionCode": 1,
+  "entry": "snake.osa",
+  "scope": "user",
+  "isApp": true
+}
