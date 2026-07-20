@@ -1,0 +1,390 @@
+#app "Home"
+#isApp false
+
+# OpenOS home screen — fully OSA. Loaded by main.cpp into osaApp whenever the
+# device transitions to STATE_HOMESCREEN. Tap-launches via app.launch (then
+# exit()), long-press opens the context menu, drag reorders/folds icons.
+
+wait(80)
+while touch.down() == 1 do wait(20) end
+
+var lastMin   = time.min()
+var dragIdx   = -1
+var dragX     = 0
+var dragY     = 0
+var pendingMv = -1
+
+# ─── Status bar (formerly Home::drawStatusBar in C++) ──────────────────────
+# Theme-aware top strip: label, centered clock, battery indicator.
+def drawStatus()
+  var dark = theme()
+  if dark == 1 then setcolor(20, 20, 22) end
+  if dark == 0 then setcolor(245, 245, 247) end
+  rect(0, 0, 240, 18)
+  fontsize(2)
+  if dark == 1 then textcolor(255, 255, 255) end
+  if dark == 0 then textcolor(0, 0, 0) end
+  text(5, 2, "CYD")
+  textc(120, 9, time.fmtHM())
+  textr(210, 2, "97%")
+  if dark == 1 then setcolor(255, 255, 255) end
+  if dark == 0 then setcolor(0, 0, 0) end
+  frame(215, 4, 16, 10)
+  rect(217, 6, 12, 6)
+  rect(231, 7, 2, 4)
+end
+
+# ─── Helpers ────────────────────────────────────────────────────────────────
+def hitTest(px, py)
+  var n = home.appCount()
+  var i = 0
+  while i < n do
+    var ix = home.iconX(i)
+    var iy = home.iconY(i)
+    if px >= ix and px <= ix + 46 and py >= iy and py <= iy + 46 then return i end
+    i = i + 1
+  end
+  return -1
+end
+
+def drawTileAt(i, x, y)
+  # Shadow
+  setcolor(20, 20, 20)
+  rrect(x + 2, y + 3, 46, 46, 12)
+  # Tile background — use packed 565 directly from the native color.
+  setcolor565(home.appColor(i))
+  rrect(x, y, 46, 46, 12)
+  # Folder mini-grid (up to 4 children, 2x2). int() casts — OSA divides as
+  # double so j/2 would be 0.5 for j=1 and the row would shift by 9 px.
+  if home.appIsFolder(i) == 1 then
+    var nf = home.folderCount(i)
+    if nf > 4 then nf = 4 end
+    var j = 0
+    while j < nf do
+      var mr = int(j / 2)
+      var mc = j - mr * 2
+      var mx = x + 6 + mc * 18
+      var my = y + 6 + mr * 18
+      setcolor565(home.folderAppColor(i, j))
+      rrect(mx, my, 14, 14, 3)
+      j = j + 1
+    end
+  end
+  # Label (shadow + main)
+  fontsize(2)
+  textcolor(0, 0, 0)
+  textc(x + 24, y + 61, home.appName(i))
+  textcolor(255, 255, 255)
+  textc(x + 23, y + 60, home.appName(i))
+end
+
+def drawTile(i)
+  drawTileAt(i, home.iconX(i), home.iconY(i))
+end
+
+def drawAll()
+  wallpaper.draw()
+  drawStatus()
+  var n = home.appCount()
+  var i = 0
+  while i < n do
+    if i != dragIdx then drawTile(i) end
+    i = i + 1
+  end
+end
+
+# ─── Context menu ───────────────────────────────────────────────────────────
+def ctxMenu(idx)
+  var isF = home.appIsFolder(idx)
+  var canRemove = home.canUninstall(idx)
+  var btnCount = 3
+  if isF == 1 then btnCount = 4 end
+  if canRemove == 1 then btnCount = 4 end
+  var btnH = 38
+  var btnGap = 8
+  var contentH = 52 + btnCount * btnH + (btnCount - 1) * btnGap + 14
+  var boxX = 20
+  var boxW = 200
+  var boxY = (320 - contentH) / 2
+  var btnX = boxX + 14
+  var btnW = boxW - 28
+  var firstBtnY = boxY + 52
+
+  # Dim scanline backdrop
+  setcolor(0, 0, 0)
+  var rr = 0
+  while rr < 320 do
+    line(0, rr, 240, rr)
+    rr = rr + 2
+  end
+
+  # Card
+  setcolor(30, 30, 35)
+  rrect(boxX, boxY, boxW, contentH, 14)
+  setcolor(55, 55, 60)
+  rframe(boxX, boxY, boxW, contentH, 14)
+  fontsize(2)
+  textcolor(160, 160, 165)
+  textc(boxX + boxW / 2, boxY + 22, home.appName(idx))
+
+  # Buttons
+  var i = 0
+  while i < btnCount do
+    var by = firstBtnY + i * (btnH + btnGap)
+    if i == 3 then setcolor(180, 60, 60) end
+    if i != 3 then setcolor(28, 28, 32) end
+    rrect(btnX, by, btnW, btnH, 8)
+    setcolor(45, 45, 50)
+    rframe(btnX, by, btnW, btnH, 8)
+    textcolor(255, 255, 255)
+    var lbl = "Open"
+    if i == 1 then lbl = "Move" end
+    if i == 2 then lbl = "Create folder..." end
+    if i == 3 and isF == 1 then lbl = "Delete folder" end
+    if i == 3 and isF == 0 then lbl = "Uninstall" end
+    textc(btnX + btnW / 2, by + btnH / 2, lbl)
+    i = i + 1
+  end
+
+  while touch.down() == 1 do wait(20) end
+  wait(120)
+
+  while 1 == 1 do
+    if touch.down() == 1 then
+      var tx = touch.x()
+      var ty = touch.y()
+      var k = 0
+      while k < btnCount do
+        var by = firstBtnY + k * (btnH + btnGap)
+        if tx >= btnX and tx <= btnX + btnW and ty >= by and ty <= by + btnH then
+          while touch.down() == 1 do wait(20) end
+          return k
+        end
+        k = k + 1
+      end
+      if tx < boxX or tx > boxX + boxW or ty < boxY or ty > boxY + contentH then
+        while touch.down() == 1 do wait(20) end
+        return -1
+      end
+    end
+    wait(20)
+  end
+end
+
+# ─── Folder modal view (3-column grid of contained apps) ────────────────────
+# All grid math uses int() because OSA division returns a double — without it
+# row 1 would render at y = ~74 instead of y = 50 + cellH.
+def folderView(idx)
+  bg(10, 10, 16)
+  fontsize(2)
+  textcolor(255, 255, 255)
+  textc(120, 22, home.appName(idx))
+  var n = home.folderCount(idx)
+  var cols = 3
+  var cellW = 60
+  var cellH = 72
+  var startX = int((240 - cols * cellW) / 2)
+  var startY = 50
+  var i = 0
+  while i < n do
+    var col = i - int(i / cols) * cols
+    var row = int(i / cols)
+    var x = startX + col * cellW + int((cellW - 46) / 2)
+    var y = startY + row * cellH
+    setcolor(0, 0, 0)
+    rrect(x + 2, y + 3, 46, 46, 12)
+    setcolor565(home.folderAppColor(idx, i))
+    rrect(x, y, 46, 46, 12)
+    fontsize(2)
+    textcolor(0, 0, 0)
+    textc(x + 24, y + 61, home.folderAppName(idx, i))
+    textcolor(255, 255, 255)
+    textc(x + 23, y + 60, home.folderAppName(idx, i))
+    i = i + 1
+  end
+  fontsize(1)
+  textcolor(140, 140, 160)
+  textc(120, 305, "Tap outside or swipe up to close")
+
+  while touch.down() == 1 do wait(20) end
+  wait(120)
+
+  var rows = int((n + cols - 1) / cols)
+  var gridBottom = startY + rows * cellH
+  while 1 == 1 do
+    if touch.down() == 1 then
+      var tx = touch.x()
+      var ty = touch.y()
+      var j = 0
+      while j < n do
+        var col = j - int(j / cols) * cols
+        var row = int(j / cols)
+        var x = startX + col * cellW + int((cellW - 46) / 2)
+        var y = startY + row * cellH
+        if tx >= x and tx <= x + 46 and ty >= y and ty <= y + 46 then
+          while touch.down() == 1 do wait(20) end
+          app.launch(home.folderAppPath(idx, j))
+          exit()
+        end
+        j = j + 1
+      end
+      if ty < startY or ty > gridBottom or tx < startX or tx > startX + cols * cellW then
+        while touch.down() == 1 do wait(20) end
+        return 0
+      end
+    end
+    wait(25)
+  end
+end
+
+# ─── Main interaction loop ──────────────────────────────────────────────────
+drawAll()
+
+loop
+  # Idle: redraw status bar on minute change.
+  if touch.down() == 0 then
+    if time.min() != lastMin then
+      lastMin = time.min()
+      drawStatus()
+    end
+    wait(35)
+  end
+
+  if touch.down() == 1 then
+    var sx = touch.x()
+    var sy = touch.y()
+    var idx = hitTest(sx, sy)
+    var t0 = millis()
+    var mode = 0  # 0=undecided, 1=drag, 2=menu_done
+
+    # Wait while finger is down — decide gesture.
+    while touch.down() == 1 do
+      var cx = touch.x()
+      var cy = touch.y()
+
+      # Long-press 1s -> open context menu
+      if mode == 0 then
+        if idx >= 0 then
+          if millis() - t0 > 1000 then
+            mode = 2
+            var pick = ctxMenu(idx)
+            if pick == 0 then
+              # Open (works for both apps and folders)
+              if home.appIsFolder(idx) == 1 then
+                folderView(idx)
+              end
+              if home.appIsFolder(idx) == 0 then
+                app.launch(home.appPath(idx))
+                exit()
+              end
+              drawAll()
+            end
+            if pick == 1 then
+              pendingMv = idx
+              notify("Tap target to swap")
+              notify("Tap a folder to move into it")
+              drawAll()
+            end
+            if pick == 2 then
+              home.makeFolder(idx)
+              notify("Created folder")
+              drawAll()
+            end
+            if pick == 3 then
+              var removingFolder = home.appIsFolder(idx)
+              if removingFolder == 1 then
+                home.deleteFolder(idx)
+                notify("Deleted folder")
+              end
+              if removingFolder == 0 then
+                var removedName = home.appName(idx)
+                var removed = home.uninstall(idx)
+                if removed == 1 then notify("Uninstalled " + removedName) end
+              end
+              drawAll()
+            end
+          end
+        end
+      end
+
+      # Drag detection (18px from start)
+      if mode == 0 then
+        if idx >= 0 then
+          var ddx = cx - sx
+          var ddy = cy - sy
+          if ddx < 0 then ddx = 0 - ddx end
+          if ddy < 0 then ddy = 0 - ddy end
+          if ddx > 18 or ddy > 18 then
+            mode = 1
+            dragIdx = idx
+          end
+        end
+      end
+
+      # Drag rendering — full redraw + dragged tile under finger.
+      if mode == 1 then
+        if cx != dragX or cy != dragY then
+          dragX = cx
+          dragY = cy
+          drawAll()
+          drawTileAt(idx, cx - 23, cy - 23)
+        end
+      end
+
+      wait(15)
+    end
+
+    # Touch released — decide outcome.
+    if mode == 1 then
+      # Drag drop — find target tile.
+      var drop = hitTest(dragX, dragY)
+      if drop >= 0 then
+        if drop != idx then
+          if home.appIsFolder(drop) == 1 then
+            home.addToFolder(drop, idx)
+          end
+          if home.appIsFolder(drop) == 0 then
+            home.swap(idx, drop)
+          end
+          home.saveOrder()
+        end
+      end
+      dragIdx = -1
+      drawAll()
+    end
+    if mode == 0 then
+      # Tap (no drag, no long-press) — launch or fulfill pending move.
+      if idx >= 0 then
+        if pendingMv >= 0 then
+          var src = pendingMv
+          pendingMv = -1
+          if idx == src then
+            notify("Move cancelled")
+          end
+          if idx != src then
+            if home.appIsFolder(idx) == 1 then
+              home.addToFolder(idx, src)
+              notify("Moved into folder")
+            end
+            if home.appIsFolder(idx) == 0 then
+              home.swap(src, idx)
+              notify("Swapped")
+            end
+            home.saveOrder()
+          end
+          drawAll()
+        end
+        if pendingMv == -1 then
+          if home.appIsFolder(idx) == 1 then
+            folderView(idx)
+            drawAll()
+          end
+          if home.appIsFolder(idx) == 0 then
+            app.launch(home.appPath(idx))
+            exit()
+          end
+        end
+      end
+    end
+  end
+end

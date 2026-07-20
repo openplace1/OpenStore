@@ -1,0 +1,44 @@
+#app "Clock"
+#isApp true
+#appColor "#5856D6"
+
+while touch.down() == 1 do wait(20) end
+wait(150)
+
+var lastSec = -1
+
+def drawClock()
+  cls()
+  bg(15, 15, 25)
+  textcolor(255, 255, 255)
+  fontsize(7)
+  var hh = padleft(str(time.hour()), 2, "0")
+  var mm = padleft(str(time.min()), 2, "0")
+  textc(120, 110, hh + ":" + mm)
+  fontsize(4)
+  textcolor(180, 180, 200)
+  var ss = padleft(str(time.sec()), 2, "0")
+  textc(120, 170, ss)
+  fontsize(2)
+  textcolor(220, 220, 230)
+  textc(120, 220, str(time.day()) + "/" + str(time.month()) + "/" + str(time.year()))
+  if time.synced() == 1 then
+    textcolor(120, 255, 120)
+    textc(120, 260, "NTP synced")
+  end
+  if time.synced() == 0 then
+    textcolor(255, 200, 80)
+    textc(120, 260, "NTP not synced")
+  end
+end
+
+drawClock()
+
+loop
+  var s = time.sec()
+  if s != lastSec then
+    drawClock()
+    lastSec = s
+  end
+  wait(200)
+end

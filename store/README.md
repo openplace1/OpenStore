@@ -99,6 +99,13 @@ the selected item's small strings cross into OSA; the package manager releases
 the cached catalog before starting TLS/ZIP work to preserve heap on ESP32 boards
 without PSRAM.
 
+Catalog entries with `scope: "system"` appear under the `System Apps` tab.
+Publishing a new system update requires changing its source in
+`store/system_apps/`, increasing both `version` and `versionCode` in the matching
+manifest, rebuilding the OPKs, and uploading the rewritten catalog and package.
+The device accepts system packages only for the fixed `openos.*` allowlist and
+only from the configured system-package URL prefix.
+
 Run the repository checks with:
 
 ```text

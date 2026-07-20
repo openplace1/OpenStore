@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "id": "openos.lockscreen",
+  "name": "Lockscreen",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "entry": "app.osa",
+  "scope": "system",
+  "isApp": false
+}

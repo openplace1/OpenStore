@@ -1,0 +1,81 @@
+#app "Lockscreen"
+#isApp false
+
+wait(120)
+while touch.down() == 1 do wait(20) end
+
+var pwd = ""
+var enc = cfg.get("passcode", "")
+if len(enc) > 0 then pwd = crypto.decrypt(enc) end
+var hasPwd = 0
+if len(pwd) > 0 then hasPwd = 1 end
+
+var isNumeric = 1
+if hasPwd == 0 then isNumeric = 0 end
+var i = 0
+while i < len(pwd) do
+  var c = code(substr(pwd, i, 1))
+  if c < 48 then isNumeric = 0 end
+  if c > 57 then isNumeric = 0 end
+  i = i + 1
+end
+
+# Theme-aware colours — refreshed on every face draw so changes in
+# Settings → Theme take effect on the next idle redraw.
+def drawFace()
+  var dark = theme()
+  if dark == 1 then bg(15, 15, 22) end
+  if dark == 0 then bg(240, 240, 245) end
+  fontsize(2)
+  if dark == 1 then textcolor(255, 255, 255) end
+  if dark == 0 then textcolor(20, 20, 25) end
+  text(5, 4, "CYD")
+  if dark == 1 then textcolor(220, 220, 220) end
+  if dark == 0 then textcolor(80, 80, 90) end
+  text(180, 4, "OpenOS")
+  fontsize(6)
+  if dark == 1 then textcolor(255, 255, 255) end
+  if dark == 0 then textcolor(20, 20, 25) end
+  textc(120, 90, time.fmtHM())
+  fontsize(2)
+  if dark == 1 then textcolor(220, 220, 220) end
+  if dark == 0 then textcolor(80, 80, 90) end
+  textc(120, 155, time.fmtDate())
+  if dark == 1 then textcolor(180, 180, 180) end
+  if dark == 0 then textcolor(120, 120, 130) end
+  textc(120, 275, "^")
+  textc(120, 295, "Swipe up to unlock")
+end
+
+drawFace()
+var lastMin = time.min()
+
+loop
+  if touch.down() == 0 then
+    if time.min() != lastMin then
+      lastMin = time.min()
+      drawFace()
+    end
+    wait(40)
+  end
+  if touch.down() == 1 then
+    var sy = touch.y()
+    var unlocked = 0
+    while touch.down() == 1 do
+      if sy - touch.y() > 60 then unlocked = 1 end
+      wait(20)
+    end
+    if unlocked == 1 then
+      if hasPwd == 0 then exit() end
+      if hasPwd == 1 then
+        var entered = ""
+        if isNumeric == 1 then entered = ui.numpad("Enter Passcode", len(pwd)) end
+        if isNumeric == 0 then entered = input("Enter passcode", "") end
+        if entered == pwd then exit() end
+        if entered != pwd then ui.alert("Wrong", "Wrong passcode") end
+      end
+      drawFace()
+      lastMin = time.min()
+    end
+  end
+end

@@ -1,0 +1,415 @@
+#app "Settings"
+#isApp true
+#appColor "#8E8E93"
+
+while touch.down() == 1 do wait(20) end
+wait(150)
+
+def waitTap()
+  while touch.down() == 0 do wait(40) end
+  while touch.down() == 1 do wait(20) end
+end
+
+def displayScreen()
+  while 1 == 1 do
+    var t = theme()
+    var modeLbl = "Light"
+    if t == 1 then modeLbl = "Dark" end
+    ui.menuStart("Display", 1)
+    ui.menuRow("Theme",      "T", 142, 142, 147, modeLbl + " >")
+    ui.menuRow("Brightness", "B", 255, 149,   0, str(getbright()) + " >")
+    var pick = ui.menuShow()
+    if pick == -1 then return end
+    if pick == 0 then
+      var nt = ui.segmented("Theme", "Light|Dark", t)
+      if nt >= 0 then sys.theme(nt) end
+    end
+    if pick == 1 then
+      var b = ui.slider("Brightness", 10, 255, getbright())
+      if b >= 0 then sys.brightness(b) end
+    end
+  end
+end
+
+def wifiConnect()
+  ui.alert("Wi-Fi", "Scanning networks...")
+  var n = wifi.scan()
+  if n == 0 then ui.alert("Wi-Fi", "No networks found") return end
+  var list = ""
+  var i = 0
+  while i < n do
+    if i > 0 then list = list + "|" end
+    var lock = " "
+    if wifi.scanSecure(i) == 1 then lock = "*" end
+    list = list + lock + wifi.scanSsid(i) + "  " + str(wifi.scanRssi(i))
+    i = i + 1
+  end
+  var pick = ui.menu(list, "Select Wi-Fi")
+  if pick < 0 then return end
+  var ssid = wifi.scanSsid(pick)
+  var pwd = ""
+  if wifi.scanSecure(pick) == 1 then pwd = input("Password for " + ssid, "") end
+  ui.alert("Wi-Fi", "Connecting to " + ssid)
+  var ok = wifi.connect(ssid, pwd)
+  if ok == 1 then
+    wifi.save(ssid, pwd)
+    ui.alert("Wi-Fi", "Connected: " + wifi.ip())
+  end
+  if ok == 0 then ui.alert("Wi-Fi", "Connection failed") end
+end
+
+def wifiScreen()
+  while 1 == 1 do
+    var st = "OFF"
+    if wifi.isEnabled() == 1 then st = "ON" end
+    if wifi.connected() == 1 then st = wifi.ssid() end
+    ui.menuStart("Wi-Fi", 1)
+    ui.menuRow("Status",         "i", 142, 142, 147, st)
+    ui.menuRow("Toggle Wi-Fi",   "T",   0, 122, 255, " ")
+    ui.menuRow("Scan & Connect", "S",   0, 122, 255, ">")
+    ui.menuRow("Disconnect",     "D", 255,  59,  48, " ")
+    var pick = ui.menuShow()
+    if pick == -1 then return end
+    if pick == 1 then
+      var t = ui.toggle("Wi-Fi enabled", wifi.isEnabled())
+      if t == 1 then wifi.enable() end
+      if t == 0 then wifi.disable() end
+    end
+    if pick == 2 then
+      if wifi.isEnabled() == 0 then wifi.enable() end
+      wifiConnect()
+    end
+    if pick == 3 then wifi.disconnect() ui.alert("Wi-Fi", "Disconnected") end
+  end
+end
+
+def btScreen()
+  var t = ui.toggle("Bluetooth (OpenOS)", bt.enabled())
+  if t == 1 then bt.enable() sys.notify("BT enabled") end
+  if t == 0 then bt.disable() sys.notify("BT disabled") end
+end
+
+def passcodeScreen()
+  while 1 == 1 do
+    var cur = crypto.decrypt(cfg.get("passcode", ""))
+    var st = "OFF"
+    if len(cur) > 0 then st = "ON" end
+    ui.menuStart("Passcode", 1)
+    ui.menuRow("Status",  "i", 142, 142, 147, st)
+    ui.menuRow("Set new", "S",   0, 122, 255, ">")
+    ui.menuRow("Disable", "D", 255,  59,  48, " ")
+    var pick = ui.menuShow()
+    if pick == -1 then return end
+    if pick == 1 then
+      var p1 = ui.numpad("New passcode", 6)
+      if len(p1) > 0 then
+        var p2 = ui.numpad("Confirm passcode", 6)
+        if p1 == p2 then
+          cfg.set("passcode", crypto.encrypt(p1))
+          ui.alert("Passcode", "Saved")
+        end
+        if p1 != p2 then ui.alert("Passcode", "Mismatch") end
+      end
+    end
+    if pick == 2 then
+      if confirm("Disable passcode?", "Lockscreen will skip prompt") == 1 then
+        cfg.set("passcode", "")
+        ui.alert("Passcode", "Disabled")
+      end
+    end
+  end
+end
+
+def wallpapersScreen()
+  var page = 0
+  while 1 == 1 do
+    cls()
+    ui.backHeader("Wallpapers")
+    var list = fs.list("/system/assets/wallpapers")
+    var n = 0
+    if len(list) > 0 then
+      n = 1
+      var i = 0
+      while i < len(list) do
+        if substr(list, i, 1) == "|" then n = n + 1 end
+        i = i + 1
+      end
+    end
+    var enabled = cfg.get("wallpaper", "1")
+    # Toggle row
+    setcolor(40, 40, 50)
+    rect(0, 55, 240, 45)
+    textcolor(255, 255, 255)
+    fontsize(2)
+    text(15, 77, "Wallpaper")
+    var stLbl = "OFF"
+    if enabled == "1" then stLbl = "ON" end
+    textcolor(255, 200, 80)
+    text(180, 77, stLbl)
+    if enabled != "1" then
+      textcolor(180, 180, 200)
+      textc(120, 200, "Wallpaper disabled")
+      textc(120, 220, "Tap toggle to enable")
+    end
+    if enabled == "1" then
+      if n == 0 then
+        textcolor(180, 180, 200)
+        textc(120, 175, "No .bmp files in")
+        textc(120, 195, "/system/assets/wallpapers/")
+      end
+      if n > 0 then
+        var startIdx = page * 4
+        var endIdx = startIdx + 4
+        if endIdx > n then endIdx = n end
+        var idx = startIdx
+        while idx < endIdx do
+          var localIdx = idx - startIdx
+          var col = localIdx % 2
+          var row = localIdx / 2
+          var tx = 26 + col * 107
+          var ty = 108 + row * 105
+          var name = split(list, "|", idx)
+          bmp.thumb("/system/assets/wallpapers/" + name, tx, ty, 80, 90)
+          idx = idx + 1
+        end
+        # Pagination
+        textcolor(120, 200, 255)
+        fontsize(2)
+        if page > 0 then text(20, 305, "< Prev") end
+        textcolor(180, 180, 200)
+        textc(120, 305, "Page " + str(page + 1))
+        textcolor(120, 200, 255)
+        if (page + 1) * 4 < n then text(180, 305, "Next >") end
+      end
+    end
+    # Wait tap
+    while touch.down() == 0 do wait(40) end
+    var px = touch.x()
+    var py = touch.y()
+    while touch.down() == 1 do wait(20) end
+    if px < 0 or py < 0 then continue end
+    if py < 50 and px < 80 then return end
+    if py >= 55 and py < 100 then
+      if enabled == "1" then cfg.set("wallpaper", "0") end
+      if enabled != "1" then cfg.set("wallpaper", "1") end
+      continue
+    end
+    if enabled != "1" then continue end
+    if n == 0 then continue end
+    if py >= 295 then
+      if px < 100 and page > 0 then page = page - 1 end
+      if px > 140 and (page + 1) * 4 < n then page = page + 1 end
+      continue
+    end
+    if py >= 108 and py < 295 then
+      var col = 0
+      if px > 130 then col = 1 end
+      var row = 0
+      if py >= 213 then row = 1 end
+      var localIdx = row * 2 + col
+      var idx = page * 4 + localIdx
+      if idx < n then
+        var name = split(list, "|", idx)
+        sys.wallpaper("/system/assets/wallpapers/" + name)
+        ui.alert("Wallpaper", "Set to " + name)
+      end
+    end
+  end
+end
+
+def timeScreen()
+  while 1 == 1 do
+    var clock = padleft(str(time.hour()), 2, "0") + ":" + padleft(str(time.min()), 2, "0")
+    var date  = str(time.day()) + "/" + str(time.month()) + "/" + str(time.year())
+    var ntpSt = "never"
+    if time.synced() == 1 then ntpSt = "OK" end
+    ui.menuStart("Time & Date", 1)
+    ui.menuRow("Time",       "C", 255, 149,   0, clock)
+    ui.menuRow("Date",       "D", 142, 142, 147, date)
+    ui.menuRow("Set time",   "S",   0, 122, 255, ">")
+    ui.menuRow("Set date",   "T",   0, 122, 255, ">")
+    ui.menuRow("NTP status", "N", 142, 142, 147, ntpSt)
+    ui.menuRow("Sync NTP",   "Y",   0, 122, 255, ">")
+    var pick = ui.menuShow()
+    if pick == -1 then return end
+    if pick == 2 then
+      var h = ui.slider("Hour", 0, 23, time.hour())
+      if h >= 0 then
+        var m = ui.slider("Minute", 0, 59, time.min())
+        if m >= 0 then
+          sys.setTime(h, m, 0, time.day(), time.month(), time.year())
+          ui.alert("Time", "Set " + padleft(str(h),2,"0") + ":" + padleft(str(m),2,"0"))
+        end
+      end
+    end
+    if pick == 3 then
+      var dd = ui.slider("Day", 1, 31, time.day())
+      if dd >= 0 then
+        var mo = ui.slider("Month", 1, 12, time.month())
+        if mo >= 0 then
+          var yy = ui.slider("Year", 2024, 2099, time.year())
+          if yy >= 0 then
+            sys.setTime(time.hour(), time.min(), time.sec(), dd, mo, yy)
+            ui.alert("Date", str(dd) + "/" + str(mo) + "/" + str(yy))
+          end
+        end
+      end
+    end
+    if pick == 5 then
+      if wifi.connected() == 0 then ui.alert("NTP", "Wi-Fi not connected") end
+      if wifi.connected() == 1 then
+        var ok = ntp.sync()
+        if ok == 1 then ui.alert("NTP", "Time synchronised") end
+        if ok == 0 then ui.alert("NTP", "Sync failed") end
+      end
+    end
+  end
+end
+
+def sdcardScreen()
+  while 1 == 1 do
+    ui.menuStart("SD Card", 1)
+    var rdy = "no"
+    if sdready() == 1 then rdy = "yes" end
+    ui.menuRow("Status",  "i", 142, 142, 147, rdy)
+    ui.menuRow("Free RAM","R", 142, 142, 147, str(int(freeram()/1024)) + " KB")
+    ui.menuRow("Uptime",  "U", 142, 142, 147, str(int(uptime()/60)) + " min")
+    ui.menuRow("Wipe SD card", "!", 255, 59, 48, ">")
+    var pick = ui.menuShow()
+    if pick == -1 then return end
+    if pick == 3 then
+      if confirm("Wipe SD card?", "Erases user files") == 1 then
+        fs.wipe("/")
+        ui.alert("SD Card", "Wiped. Reboot recommended.")
+      end
+    end
+  end
+end
+
+def appDetail(idx)
+  while 1 == 1 do
+    var name = apps.name(idx)
+    var anyReq = 0
+    if apps.needsPerm(idx, 1) == 1 then anyReq = 1 end
+    if apps.needsPerm(idx, 2) == 1 then anyReq = 1 end
+    if apps.needsPerm(idx, 4) == 1 then anyReq = 1 end
+    ui.menuStart(name, 1)
+    var rowMap = ""
+    if anyReq == 0 or apps.needsPerm(idx, 1) == 1 then
+      var st = "OFF"
+      if apps.hasPerm(idx, 1) == 1 then st = "ON" end
+      ui.menuRow("Notifications", "N", 0, 122, 255, st)
+      rowMap = rowMap + "1|"
+    end
+    if anyReq == 0 or apps.needsPerm(idx, 2) == 1 then
+      var st = "OFF"
+      if apps.hasPerm(idx, 2) == 1 then st = "ON" end
+      ui.menuRow("Network", "W", 52, 199, 89, st)
+      rowMap = rowMap + "2|"
+    end
+    if anyReq == 0 or apps.needsPerm(idx, 4) == 1 then
+      var st = "OFF"
+      if apps.hasPerm(idx, 4) == 1 then st = "ON" end
+      ui.menuRow("System Settings", "S", 255, 149, 0, st)
+      rowMap = rowMap + "4|"
+    end
+    var pick = ui.menuShow()
+    if pick == -1 then return end
+    var pickBit = split(rowMap, "|", pick)
+    if pickBit == "" then return end
+    apps.togglePerm(idx, num(pickBit))
+  end
+end
+
+def applicationsScreen()
+  var n = apps.scan()
+  if n == 0 then
+    ui.alert("Applications", "No .osa apps on SD")
+    return
+  end
+  while 1 == 1 do
+    n = apps.scan()
+    ui.menuStart("Applications", 1)
+    var i = 0
+    while i < n do
+      var grantCount = 0
+      if apps.hasPerm(i, 1) == 1 then grantCount = grantCount + 1 end
+      if apps.hasPerm(i, 2) == 1 then grantCount = grantCount + 1 end
+      if apps.hasPerm(i, 4) == 1 then grantCount = grantCount + 1 end
+      ui.menuRow(apps.name(i), "A", 255, 149, 0, str(grantCount) + " perm >")
+      i = i + 1
+    end
+    var pick = ui.menuShow()
+    if pick == -1 then return end
+    if pick < n then appDetail(pick) end
+  end
+end
+
+def aboutScreen()
+  cls()
+  ui.backHeader("About Device")
+  # Info card
+  setcolor(40, 40, 50)
+  rrect(10, 70, 220, 80, 10)
+  setcolor(0, 122, 255)
+  rrect(20, 90, 40, 40, 8)
+  textcolor(255, 255, 255)
+  fontsize(4)
+  textc(40, 110, "OS")
+  textcolor(255, 255, 255)
+  fontsize(2)
+  text(75, 100, "OpenOS 1.0a")
+  textcolor(180, 180, 200)
+  text(75, 120, "Privileged (OSA)")
+  # Stats card
+  setcolor(40, 40, 50)
+  rrect(10, 165, 220, 110, 10)
+  textcolor(255, 255, 255)
+  fontsize(2)
+  text(20, 185, "CPU:")
+  text(20, 215, "Free RAM:")
+  text(20, 245, "Uptime:")
+  textcolor(180, 180, 200)
+  textcolor(180, 180, 200)
+  textcolor(180, 180, 200)
+  text(220 - len("240 MHz") * 6, 185, "240 MHz")
+  var ramTxt = str(int(freeram() / 1024)) + " KB"
+  text(220 - len(ramTxt) * 6, 215, ramTxt)
+  var upTxt = str(int(uptime() / 60)) + " min"
+  text(220 - len(upTxt) * 6, 245, upTxt)
+  while 1 == 1 do
+    if touch.down() == 1 and ui.backTapped() == 1 then
+      while touch.down() == 1 do wait(20) end
+      return
+    end
+    wait(40)
+  end
+end
+
+loop
+  ui.menuStart("Settings")
+  var wifiVal = "OFF >"
+  if wifi.isEnabled() == 1 then wifiVal = "ON >" end
+  var btVal = "OFF >"
+  if bt.enabled() == 1 then btVal = "ON >" end
+  ui.menuRow("Wi-Fi",                "W",   0, 122, 255, wifiVal)
+  ui.menuRow("Bluetooth",            "B",   0, 122, 255, btVal)
+  ui.menuRow("Display & Brightness", "D", 142, 142, 147, ">")
+  ui.menuRow("Passcode",             "P", 255,  45,  85, "OFF >")
+  ui.menuRow("Wallpapers",           "W", 175,  82, 222, ">")
+  ui.menuRow("Time & Date",          "T", 255, 149,   0, ">")
+  ui.menuRow("SD Card",              "SD", 52, 199,  89, ">")
+  ui.menuRow("Applications",         "A", 255, 149,   0, ">")
+  ui.menuRow("About",                "i", 142, 142, 147, ">")
+  var pick = ui.menuShow()
+  if pick == -1 then exit() end
+  if pick == 0 then wifiScreen() end
+  if pick == 1 then btScreen() end
+  if pick == 2 then displayScreen() end
+  if pick == 3 then passcodeScreen() end
+  if pick == 4 then wallpapersScreen() end
+  if pick == 5 then timeScreen() end
+  if pick == 6 then sdcardScreen() end
+  if pick == 7 then applicationsScreen() end
+  if pick == 8 then aboutScreen() end
+end

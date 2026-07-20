@@ -1,0 +1,99 @@
+#app "Notes"
+#isApp true
+#appColor "#FFCC00"
+
+while touch.down() == 1 do wait(20) end
+wait(150)
+
+def ensureDir()
+  if fs.exists("/user") == 0 then fs.mkdir("/user") end
+  if fs.exists("/user/notes") == 0 then fs.mkdir("/user/notes") end
+end
+
+def viewNote(name)
+  while 1 == 1 do
+    var path = "/user/notes/" + name
+    var content = fs.read(path)
+    cls()
+    bg(15, 15, 25)
+    ui.backHeader(name)
+    textcolor(255, 255, 255)
+    fontsize(2)
+    var nl = char(10)
+    var line = 0
+    var ls = 0
+    var i = 0
+    while i <= len(content) and line < 13 do
+      var atNl = 0
+      if i == len(content) then atNl = 1 end
+      if atNl == 0 then
+        if substr(content, i, 1) == nl then atNl = 1 end
+      end
+      if atNl == 1 then
+        var ln = substr(content, ls, i - ls)
+        if len(ln) > 28 then ln = substr(ln, 0, 28) end
+        text(8, 60 + line * 18, ln)
+        line = line + 1
+        ls = i + 1
+      end
+      i = i + 1
+    end
+    setcolor(0, 122, 255)
+    rrect(20, 270, 90, 32, 8)
+    setcolor(255, 59, 48)
+    rrect(130, 270, 90, 32, 8)
+    textcolor(255, 255, 255)
+    fontsize(2)
+    textc(65, 286, "Edit")
+    textc(175, 286, "Delete")
+    while touch.down() == 0 do wait(40) end
+    var px = touch.x()
+    var py = touch.y()
+    while touch.down() == 1 do wait(20) end
+    if px < 0 or py < 0 then continue end
+    if py < 50 and px < 80 then return end
+    if py >= 270 and py <= 302 then
+      if px >= 20 and px <= 110 then
+        var newText = input("Edit note", content, 1)
+        if len(newText) > 0 then fs.write(path, newText) end
+      end
+      if px >= 130 and px <= 220 then
+        if confirm("Delete " + name + "?", "This can't be undone") == 1 then
+          fs.delete(path)
+          return
+        end
+      end
+    end
+  end
+end
+
+def newNote()
+  var text = input("New note", "", 1)
+  if len(text) == 0 then return end
+  ensureDir()
+  var n = 1
+  while n < 100 do
+    var path = "/user/notes/Note_" + str(n) + ".txt"
+    if fs.exists(path) == 0 then
+      fs.write(path, text)
+      ui.alert("Notes", "Saved as Note_" + str(n) + ".txt")
+      return
+    end
+    n = n + 1
+  end
+  ui.alert("Notes", "Note limit reached")
+end
+
+loop
+  ensureDir()
+  var list = fs.list("/user/notes")
+  var menu = "[New note]"
+  if len(list) > 0 then menu = menu + "|" + list end
+  var pick = ui.menu(menu, "Notes", 1)
+  if pick < 0 then exit() end
+  if pick == 0 then newNote() end
+  if pick > 0 then
+    var name = split(list, "|", pick - 1)
+    if startswith(name, ".") == 0 then viewNote(name) end
+  end
+end

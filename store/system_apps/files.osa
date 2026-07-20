@@ -1,0 +1,57 @@
+#app "Files"
+#isApp true
+#appColor "#34C759"
+
+while touch.down() == 1 do wait(20) end
+wait(150)
+
+var curDir = "/"
+
+def parentDir(path)
+  if path == "/" then return "/" end
+  var i = len(path) - 1
+  while i > 0 do
+    if substr(path, i, 1) == "/" then return substr(path, 0, i) end
+    i = i - 1
+  end
+  return "/"
+end
+
+def joinPath(dir, name)
+  if dir == "/" then return "/" + name end
+  return dir + "/" + name
+end
+
+loop
+  var list = fs.list(curDir)
+  var menu = ""
+  if curDir != "/" then menu = ".. (up)" end
+  if len(list) > 0 then
+    if len(menu) > 0 then menu = menu + "|" end
+    menu = menu + list
+  end
+  if len(menu) == 0 then menu = "(empty)" end
+  var pick = ui.menu(menu, curDir, 1)
+  if pick < 0 then exit() end
+  var offset = 0
+  if curDir != "/" then
+    if pick == 0 then curDir = parentDir(curDir) continue end
+    offset = 1
+  end
+  if len(list) == 0 then continue end
+  var name = split(list, "|", pick - offset)
+  if endswith(name, "/") then
+    var bare = substr(name, 0, len(name) - 1)
+    curDir = joinPath(curDir, bare)
+    continue
+  end
+  var lower = lower(name)
+  if endswith(lower, ".osa") then
+    app.launch(joinPath(curDir, name))
+  end
+  if endswith(lower, ".osa") == 0 then
+    var content = fs.read(joinPath(curDir, name))
+    if len(content) > 256 then content = substr(content, 0, 256) + "..." end
+    ui.alert(name, content)
+  end
+end

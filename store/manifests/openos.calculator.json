@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "id": "openos.calculator",
+  "name": "Calc",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "entry": "app.osa",
+  "scope": "system",
+  "isApp": true
+}

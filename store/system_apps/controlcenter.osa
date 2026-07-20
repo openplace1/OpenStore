@@ -1,0 +1,51 @@
+#app "Control Center"
+#appColor "#5856D6"
+
+while touch.down() == 1 do wait(20) end
+wait(150)
+
+loop
+  var wifiSt = "OFF"
+  if wifi.isEnabled() == 1 then wifiSt = "ON" end
+  if wifi.connected() == 1 then wifiSt = wifi.ssid() end
+  var btSt = "OFF"
+  if bt.enabled() == 1 then btSt = "ON" end
+  var themeLbl = "Light"
+  if theme() == 1 then themeLbl = "Dark" end
+  var ntpSt = "no"
+  if time.synced() == 1 then ntpSt = "OK" end
+  ui.menuStart("Control Center", 1)
+  ui.menuRow("Wi-Fi",      "W",   0, 122, 255, wifiSt)
+  ui.menuRow("Bluetooth",  "B",   0, 122, 255, btSt)
+  ui.menuRow("Theme",      "D",  88,  86, 214, themeLbl)
+  ui.menuRow("Brightness", "*", 255, 149,   0, str(getbright()))
+  ui.menuRow("NTP sync",   "N",  52, 199,  89, ntpSt)
+  var pick = ui.menuShow()
+  if pick == -1 then exit() end
+  if pick == 0 then
+    var t = ui.toggle("Wi-Fi", wifi.isEnabled())
+    if t == 1 then wifi.enable() end
+    if t == 0 then wifi.disable() end
+  end
+  if pick == 1 then
+    var t = ui.toggle("Bluetooth", bt.enabled())
+    if t == 1 then bt.enable() end
+    if t == 0 then bt.disable() end
+  end
+  if pick == 2 then
+    var t = ui.segmented("Theme", "Light|Dark", theme())
+    if t >= 0 then sys.theme(t) end
+  end
+  if pick == 3 then
+    var b = ui.slider("Brightness", 10, 255, getbright())
+    if b >= 0 then sys.brightness(b) end
+  end
+  if pick == 4 then
+    if wifi.connected() == 0 then ui.alert("NTP", "Wi-Fi not connected") end
+    if wifi.connected() == 1 then
+      var ok = ntp.sync()
+      if ok == 1 then ui.alert("NTP", "Time synchronised") end
+      if ok == 0 then ui.alert("NTP", "Sync failed") end
+    end
+  end
+end

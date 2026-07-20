@@ -1,0 +1,165 @@
+#app "Calc"
+#isApp true
+#appColor "#FF9500"
+
+while touch.down() == 1 do wait(20) end
+wait(150)
+
+var dispBuf = "0"
+var prevVal = 0
+var pendOp = ""
+var justComputed = 0
+
+def applyOp(a, b, op)
+  if op == "+" then return a + b end
+  if op == "-" then return a - b end
+  if op == "*" then return a * b end
+  if op == "/" then
+    if b == 0 then return 0 end
+    return a / b
+  end
+  if op == "%" then return a - floor(a / b) * b end
+  return b
+end
+
+def doOp(newOp)
+  var v = num(dispBuf)
+  if len(pendOp) > 0 then
+    prevVal = applyOp(prevVal, v, pendOp)
+    dispBuf = str(prevVal)
+  end
+  if len(pendOp) == 0 then prevVal = v end
+  pendOp = newOp
+  justComputed = 1
+end
+
+def doDigit(d)
+  if justComputed == 1 then dispBuf = "" end
+  justComputed = 0
+  if dispBuf == "0" then dispBuf = "" end
+  if len(dispBuf) < 12 then dispBuf = dispBuf + d end
+end
+
+def doDot()
+  if justComputed == 1 then
+    dispBuf = "0"
+    justComputed = 0
+  end
+  if contains(dispBuf, ".") == 0 then dispBuf = dispBuf + "." end
+end
+
+def doClear()
+  dispBuf = "0"
+  prevVal = 0
+  pendOp = ""
+  justComputed = 0
+end
+
+def doBack()
+  if len(dispBuf) > 1 then dispBuf = substr(dispBuf, 0, len(dispBuf) - 1) end
+  if len(dispBuf) == 0 then dispBuf = "0" end
+end
+
+def drawDisplay()
+  setcolor(15, 15, 25)
+  rect(0, 0, 240, 105)
+  textcolor(255, 200, 80)
+  fontsize(2)
+  var lhs = ""
+  if len(pendOp) > 0 then lhs = str(prevVal) + " " + pendOp end
+  text(15, 12, lhs)
+  textcolor(255, 255, 255)
+  fontsize(4)
+  var shown = dispBuf
+  if len(shown) > 16 then shown = substr(shown, len(shown) - 16, 16) end
+  text(15, 55, shown)
+end
+
+def drawBtn(c, r, label, kind)
+  var x = c * 60
+  var y = 110 + r * 34
+  if kind == 0 then setcolor(55, 55, 70) end
+  if kind == 1 then setcolor(255, 149, 0) end
+  if kind == 2 then setcolor(120, 50, 50) end
+  rrect(x + 2, y + 2, 56, 30, 7)
+  textcolor(255, 255, 255)
+  fontsize(4)
+  textc(x + 30, y + 17, label)
+end
+
+def drawPad()
+  drawBtn(0, 0, "C", 2)
+  drawBtn(1, 0, "<", 2)
+  drawBtn(2, 0, "%", 1)
+  drawBtn(3, 0, "/", 1)
+  drawBtn(0, 1, "7", 0)
+  drawBtn(1, 1, "8", 0)
+  drawBtn(2, 1, "9", 0)
+  drawBtn(3, 1, "*", 1)
+  drawBtn(0, 2, "4", 0)
+  drawBtn(1, 2, "5", 0)
+  drawBtn(2, 2, "6", 0)
+  drawBtn(3, 2, "-", 1)
+  drawBtn(0, 3, "1", 0)
+  drawBtn(1, 3, "2", 0)
+  drawBtn(2, 3, "3", 0)
+  drawBtn(3, 3, "+", 1)
+  drawBtn(0, 4, "0", 0)
+  drawBtn(1, 4, ".", 0)
+  drawBtn(2, 4, "=", 1)
+  drawBtn(3, 4, "=", 1)
+end
+
+def drawAll()
+  cls()
+  bg(15, 15, 25)
+  drawDisplay()
+  drawPad()
+end
+
+drawAll()
+
+loop
+  while touch.down() == 0 do wait(30) end
+  var px = touch.x()
+  var py = touch.y()
+  while touch.down() == 1 do wait(20) end
+  if px < 0 or py < 0 then continue end
+  if py < 110 or py > 285 then continue end
+  # OSA division yields a double — round down to int for index math.
+  var col = int(px / 60)
+  var row = int((py - 110) / 34)
+  if col < 0 or col > 3 then continue end
+  if row < 0 or row > 4 then continue end
+  if row == 0 then
+    if col == 0 then doClear() end
+    if col == 1 then doBack() end
+    if col == 2 then doOp("%") end
+    if col == 3 then doOp("/") end
+  end
+  if row == 1 then
+    if col == 0 then doDigit("7") end
+    if col == 1 then doDigit("8") end
+    if col == 2 then doDigit("9") end
+    if col == 3 then doOp("*") end
+  end
+  if row == 2 then
+    if col == 0 then doDigit("4") end
+    if col == 1 then doDigit("5") end
+    if col == 2 then doDigit("6") end
+    if col == 3 then doOp("-") end
+  end
+  if row == 3 then
+    if col == 0 then doDigit("1") end
+    if col == 1 then doDigit("2") end
+    if col == 2 then doDigit("3") end
+    if col == 3 then doOp("+") end
+  end
+  if row == 4 then
+    if col == 0 then doDigit("0") end
+    if col == 1 then doDot() end
+    if col == 2 then doOp("") end
+    if col == 3 then doOp("") end
+  end
+  drawAll()
+end
