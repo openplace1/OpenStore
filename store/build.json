@@ -2,31 +2,94 @@
   "packageBaseUrl": "https://raw.githubusercontent.com/openplace1/OpenStore/main/store/packages",
   "packages": [
     {
-      "manifest": "apps\\snake.manifest.json",
+      "manifest": "store/manifests/openplace.paint.json",
       "files": {
-        "snake.osa": "apps\\snake.osa"
+        "app.osa": "sd_content/paint.osa"
       },
       "developer": "openplace1",
-      "summary": "Classic Snake game for OpenOS.",
-      "description": "Snake is a classic arcade game for OpenOS. Control the snake using the touchscreen, collect food, grow longer, beat your high score, and avoid hitting the walls or yourself.",
-      "appColor": "#24A148"
+      "summary": "A simple touch drawing app for OpenOS.",
+      "description": "Paint is a lightweight drawing application made for OpenOS. Draw directly on the touchscreen, choose a color and adjust the brush size. The interface is designed for the 240 x 320 display and works entirely offline after installation.",
+      "appColor": "#FF3B30"
+    },
+    {
+      "manifest": "store/manifests/openos.home.json",
+      "files": { "app.osa": "store/system_apps/home.osa" },
+      "developer": "openplace1",
+      "summary": "OpenOS home screen and app launcher.",
+      "description": "Updates the OpenOS home screen, app grid, folders, icon ordering and app context menu.",
+      "appColor": "#0A84FF"
+    },
+    {
+      "manifest": "store/manifests/openos.lockscreen.json",
+      "files": { "app.osa": "store/system_apps/lockscreen.osa" },
+      "developer": "openplace1",
+      "summary": "OpenOS lock screen and passcode panel.",
+      "description": "Updates the OpenOS lock screen, clock display and passcode interface.",
+      "appColor": "#5856D6"
+    },
+    {
+      "manifest": "store/manifests/openos.controlcenter.json",
+      "files": { "app.osa": "store/system_apps/controlcenter.osa" },
+      "developer": "openplace1",
+      "summary": "Quick controls for OpenOS.",
+      "description": "Updates Control Center and its quick controls for connectivity, brightness and system actions.",
+      "appColor": "#5856D6"
+    },
+    {
+      "manifest": "store/manifests/openos.settings.json",
+      "files": { "app.osa": "store/system_apps/settings.osa" },
+      "developer": "openplace1",
+      "summary": "OpenOS device and system settings.",
+      "description": "Updates Settings, including connectivity, appearance, passcode, applications, storage and device information.",
+      "appColor": "#8E8E93"
+    },
+    {
+      "manifest": "store/manifests/openos.files.json",
+      "files": { "app.osa": "store/system_apps/files.osa" },
+      "developer": "openplace1",
+      "summary": "Browse and open files on the SD card.",
+      "description": "Updates the OpenOS file browser and file launching interface.",
+      "appColor": "#34C759"
+    },
+    {
+      "manifest": "store/manifests/openos.clock.json",
+      "files": { "app.osa": "store/system_apps/clock.osa" },
+      "developer": "openplace1",
+      "summary": "Clock application for OpenOS.",
+      "description": "Updates the OpenOS clock application and its time display.",
+      "appColor": "#5856D6"
+    },
+    {
+      "manifest": "store/manifests/openos.calculator.json",
+      "files": { "app.osa": "store/system_apps/calculator.osa" },
+      "developer": "openplace1",
+      "summary": "Calculator application for OpenOS.",
+      "description": "Updates the OpenOS calculator interface and calculation logic.",
+      "appColor": "#FF9500"
+    },
+    {
+      "manifest": "store/manifests/openos.notes.json",
+      "files": { "app.osa": "store/system_apps/notes.osa" },
+      "developer": "openplace1",
+      "summary": "Create and edit notes on the SD card.",
+      "description": "Updates the OpenOS notes application, multiline editor and note browser.",
+      "appColor": "#FFCC00"
+    },
+    {
+      "manifest": "store/manifests/openos.compiler.json",
+      "files": { "app.osa": "store/system_apps/compiler.osa" },
+      "developer": "openplace1",
+      "summary": "Compile OSA source files on the device.",
+      "description": "Updates the optional on-device OSA compiler interface.",
+      "appColor": "#8E8E93"
+    },
+    {
+      "manifest": "store/manifests/openos.openstore.json",
+      "files": { "app.osa": "store/system_apps/openstore.osa" },
+      "developer": "openplace1",
+      "summary": "Install and update OpenOS applications.",
+      "description": "Updates OpenStore, including user applications, system application updates and OPK package management.",
+      "appColor": "#0A84FF"
     }
-  ],
-  "appsCache": {
-    "apps\\snake.osa": {
-      "sha256": "a1b0c8d374d830660326904a0921bea694953ab820e85d8a9d25406e76d263e9",
-      "metadata": {
-        "id": "openplace1.snake",
-        "name": "Snake",
-        "summary": "Classic Snake game for OpenOS.",
-        "description": "Snake is a classic arcade game for OpenOS. Control the snake using the touchscreen, collect food, grow longer, beat your high score, and avoid hitting the walls or yourself.",
-        "developer": "openplace1",
-        "version": "1.0",
-        "versionCode": 1,
-        "appColor": "#24A148",
-        "scope": "user",
-        "isApp": true
-      }
-    }
-  }
+  ]
 }
