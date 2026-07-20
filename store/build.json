@@ -90,33 +90,7 @@
       "summary": "Install and update OpenOS applications.",
       "description": "Updates OpenStore, including user applications, system application updates and OPK package management.",
       "appColor": "#0A84FF"
-    },
-    {
-      "manifest": "apps\\file.manifest.json",
-      "files": {
-        "file.osa": "apps\\file.osa"
-      },
-      "developer": "openplace1",
-      "summary": "Testing app",
-      "description": "Basic testing app written by Claude",
-      "appColor": "#111111"
     }
   ],
-  "appsCache": {
-    "apps\\file.osa": {
-      "sha256": "d5f9a56cc409a1a2ae5cd313502cd574737b02d343127b6bb5824b1421db3f2c",
-      "metadata": {
-        "id": "openplace1.test",
-        "name": "TestApp",
-        "summary": "Testing app",
-        "description": "Basic testing app written by Claude",
-        "developer": "openplace1",
-        "version": "1.0",
-        "versionCode": 1,
-        "appColor": "#111111",
-        "scope": "user",
-        "isApp": true
-      }
-    }
-  }
+  "appsCache": {}
 }
