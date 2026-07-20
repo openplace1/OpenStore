@@ -100,33 +100,7 @@
       "summary": "Install and update OpenOS applications.",
       "description": "Updates OpenStore, including user applications, system application updates and OPK package management.",
       "appColor": "#0A84FF"
-    },
-    {
-      "manifest": "apps\\counter.manifest.json",
-      "files": {
-        "counter.osa": "apps\\counter.osa"
-      },
-      "developer": "openplace1",
-      "summary": "Simple tap counter app for OpenOS",
-      "description": "A tiny OSA app that counts taps. Press the button to increment, press Reset to zero it out. No permissions needed — good starter example for touch input in OSA.",
-      "appColor": "#2979FF"
     }
   ],
-  "appsCache": {
-    "apps\\counter.osa": {
-      "sha256": "681c5842689eae08f763ea60ad3c6ef71e8b9d0dffb62b86df6039e2db775fc9",
-      "metadata": {
-        "id": "openplace1.counter",
-        "name": "Counter",
-        "summary": "Simple tap counter app for OpenOS",
-        "description": "A tiny OSA app that counts taps. Press the button to increment, press Reset to zero it out. No permissions needed — good starter example for touch input in OSA.",
-        "developer": "openplace1",
-        "version": "1.0",
-        "versionCode": 1,
-        "appColor": "#2979FF",
-        "scope": "user",
-        "isApp": true
-      }
-    }
-  }
+  "appsCache": {}
 }
