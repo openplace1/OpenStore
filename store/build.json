@@ -114,7 +114,7 @@
   ],
   "appsCache": {
     "apps\\clicker.osa": {
-      "sha256": "f83638c2f46ef6c9e4383b3c1cede124a47121e6f25a70fc40f30bf71eea864e",
+      "sha256": "ea77cb18343b1ff275b90488a3609fa702a8cf1f3772078bb3f9b60186c52b13",
       "metadata": {
         "id": "opentest.clicker",
         "name": "Clicker Test",
@@ -122,7 +122,7 @@
         "description": "What do you fucking except from a description from an a clicker app",
         "developer": "openplace1",
         "version": "1.0",
-        "versionCode": 1,
+        "versionCode": 2,
         "appColor": "#641353",
         "scope": "user",
         "isApp": true

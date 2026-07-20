@@ -2,72 +2,74 @@
 #appColor "#1E1E24"
 #isApp true
 
-# Global state
+# Global application state
 var count = 0
+var lastCount = -999
 
-# Button geometry configuration
+# Button layout configuration
 var btnW = 52
 var btnH = 42
 var btnY = 230
 
-# X coordinates for horizontal button alignment
+# X coordinates for horizontal alignment
 var btnMinusX = 25
 var btnPlusX  = 94
 var btnMultX  = 163
 
 loop
-    # 1. Clear screen with current theme background
-    cls()
+    # Render UI only when the count changes to prevent screen flickering
+    if count != lastCount then
+        cls()
+        ui.header("Clicker Test Utility")
+        
+        # Display the current count centered
+        textcolor565(theme.text())
+        fontsize(4)
+        textc(120, 125, str(count))
+        
+        # Draw Decrement Button
+        setcolor(211, 47, 47) 
+        rrect(btnMinusX, btnY, btnW, btnH, 6)
+        
+        # Draw Increment Button
+        setcolor(56, 142, 60)
+        rrect(btnPlusX, btnY, btnW, btnH, 6)
+        
+        # Draw Multiplier Button
+        setcolor(25, 118, 210)
+        rrect(btnMultX, btnY, btnW, btnH, 6)
+        
+        # Render button labels
+        textcolor(255, 255, 255)
+        fontsize(2)
+        textc(btnMinusX + 26, btnY + 21, "-")
+        textc(btnPlusX + 26, btnY + 21, "+")
+        textc(btnMultX + 26, btnY + 21, "*2")
+        
+        # Update state tracker
+        lastCount = count
+    end
     
-    # Render standard system header
-    ui.header("Clicker Test Utility")
-    
-    # 2. Display current counter state centered on screen
-    textcolor565(theme.text())
-    fontsize(4)
-    textc(120, 125, str(count))
-    
-    # 3. Render Decrement Button (-)
-    setcolor(211, 47, 47) 
-    rrect(btnMinusX, btnY, btnW, btnH, 6)
-    textcolor(255, 255, 255)
-    fontsize(2)
-    textc(btnMinusX + 26, btnY + 21, "-")
-    
-    # 4. Render Increment Button (+)
-    setcolor(56, 142, 60)
-    rrect(btnPlusX, btnY, btnW, btnH, 6)
-    textcolor(255, 255, 255)
-    fontsize(2)
-    textc(btnPlusX + 26, btnY + 21, "+")
-    
-    # 5. Render Multiplier Button (*2)
-    setcolor(25, 118, 210)
-    rrect(btnMultX, btnY, btnW, btnH, 6)
-    textcolor(255, 255, 255)
-    fontsize(2)
-    textc(btnMultX + 26, btnY + 21, "*2")
-    
-    # 6. Touch Event Processing Pipeline
+    # Independent touch input handling
     if touch.released() then
         var tx = touch.x()
         var ty = touch.y()
         
-        # Validate vertical touch boundaries
+        # Check if touch is within the button row vertical bounds
         if ty >= btnY and ty <= btnY + btnH then
-            # Handle minus tap
+            # Logic for Decrement
             if tx >= btnMinusX and tx <= btnMinusX + btnW then
                 count = count - 1
-            # Handle plus tap
+            # Logic for Increment
             elif tx >= btnPlusX and tx <= btnPlusX + btnW then
                 count = count + 1
-            # Handle multiply tap
+            # Logic for Multiply
             elif tx >= btnMultX and tx <= btnMultX + btnW then
                 count = count * 2
             end
         end
     end
     
-    # Main loop throttling for power efficiency and CPU stability
-    wait(20)
+    # Throttle loop to prevent CPU saturation while maintaining responsiveness
+    wait(50)
 end
