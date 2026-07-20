@@ -358,7 +358,7 @@ def aboutScreen()
   textc(40, 110, "OS")
   textcolor(255, 255, 255)
   fontsize(2)
-  text(75, 100, "OpenOS 1.0b")
+  text(75, 100, "OpenOS 1.0a")
   textcolor(180, 180, 200)
   text(75, 120, "Privileged (OSA)")
   # Stats card
