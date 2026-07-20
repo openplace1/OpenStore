@@ -27,4 +27,4 @@ Package URLs are generated with the base URL defined in `store/build.json`.
 
 # Note
 
-If you want to create an app and publish it to the official repository (the one you're currently on), create an Issue and add the .opk file. If your app is approved, it will be added to the store.
+If you want to create an app and publish it to the official repository (the one you're currently on), create an Issue and add the .osa file. If your app is approved, it will be added to the store.
