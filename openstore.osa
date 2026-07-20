@@ -1,0 +1,500 @@
+#app "OpenStore"
+#isApp true
+#appColor "#0A84FF"
+#exception true
+
+var count = 0
+var view = 0
+var chosen = 0
+var tab = 0
+var scrollY = 0
+var maxScroll = 0
+var appsScroll = 0
+var systemScroll = 0
+var pressed = 0
+var dragging = 0
+var startX = 0
+var startY = 0
+var startScroll = 0
+var lastX = 0
+var lastY = 0
+var redraw = 1
+var lastFrame = 0
+var smooth = 0
+var detailText = ""
+var detailHeight = 0
+var bgColor = theme.bg()
+var cardColor = theme.surface()
+var mainColor = theme.text()
+var subColor = theme.subtext()
+var lineColor = theme.divider()
+
+def drainTouch()
+  wait(100)
+  while touch.down() == 1 do
+    wait(15)
+  end
+end
+
+def stateFor(item)
+  return store.state(item)
+end
+
+def visibleCount()
+  return store.visibleCount(tab)
+end
+
+def itemAt(slot)
+  return store.visibleItem(tab, slot)
+end
+
+def stateLabel(state)
+  if state == 0 then
+    return "GET"
+  end
+  if state == 1 then
+    return "UPDATE"
+  end
+  if state == 2 then
+    return "INSTALLED"
+  end
+  return "NEWER"
+end
+
+def drawGet(item, x, y)
+  var state = stateFor(item)
+  if state < 2 then
+    setcolor(0, 122, 255)
+  else
+    setcolor(174, 174, 178)
+  end
+  rrect(x, y, 64, 28, 14)
+  textcolor(255, 255, 255)
+  fontsize(1)
+  textc(x + 32, y + 14, stateLabel(state))
+end
+
+def canUninstall(item)
+  return store.canUninstall(item)
+end
+
+def drawUninstall(item, x, y)
+  if canUninstall(item) == 0 then
+    return
+  end
+  setcolor(205, 55, 55)
+  rrect(x, y, 86, 28, 14)
+  textcolor(255, 255, 255)
+  fontsize(1)
+  textc(x + 43, y + 14, "UNINSTALL")
+end
+
+def drawActions(item, x, y)
+  drawGet(item, x, y)
+  drawUninstall(item, x + 72, y)
+end
+
+def drawScrollBar(top, viewport, content)
+  if maxScroll <= 0 then
+    return
+  end
+  var track = viewport - 8
+  var thumb = int(track * viewport / content)
+  if thumb < 28 then
+    thumb = 28
+  end
+  if thumb > track then
+    thumb = track
+  end
+  var travel = track - thumb
+  var pos = 0
+  if maxScroll > 0 then
+    pos = int(travel * scrollY / maxScroll)
+  end
+  setcolor565(lineColor)
+  rrect(235, top + 4, 3, track, 2)
+  setcolor(142, 142, 147)
+  rrect(234, top + 4 + pos, 5, thumb, 3)
+end
+
+def drawTabs()
+  setcolor565(theme.header())
+  rect(0, 282, 240, 38)
+  setcolor565(lineColor)
+  line(0, 282, 240, 282)
+  fontsize(1)
+  if tab == 0 then textcolor(0, 122, 255) end
+  if tab != 0 then textcolor565(subColor) end
+  textc(60, 300, "Apps")
+  if tab == 1 then textcolor(0, 122, 255) end
+  if tab != 1 then textcolor565(subColor) end
+  textc(180, 300, "System Apps")
+  setcolor(0, 122, 255)
+  if tab == 0 then rrect(22, 315, 76, 3, 2) end
+  if tab == 1 then rrect(142, 315, 76, 3, 2) end
+end
+
+def drawCard(item, y, clipTop, clipBottom)
+  if y >= clipBottom or y + 130 <= clipTop then
+    return
+  end
+  setcolor565(cardColor)
+  rrect(7, y, 224, 130, 12)
+
+  var color = store.color(item)
+  var appName = store.name(item)
+  var letter = upper(substr(appName, 0, 1))
+  if len(letter) == 0 then
+    letter = "?"
+  end
+  setcolor565(color)
+  rrect(16, y + 12, 64, 64, 13)
+  textcolor(255, 255, 255)
+  fontsize(4)
+  textc(48, y + 44, letter)
+
+  fontsize(2)
+  textcolor565(mainColor)
+  textml(91, y + 23, textfit(appName, 128))
+  fontsize(1)
+  textcolor565(subColor)
+  textml(91, y + 43, textfit(store.developer(item), 128))
+  var short = substr(store.summary(item), 0, 50)
+  textblock(91, y + 58, 128, short, 12, 0, 41, 320, 3)
+  drawActions(item, 16, y + 90)
+end
+
+def drawListLayer(clipTop, clipBottom)
+  setcolor565(bgColor)
+  rect(0, 40, 240, 242)
+  var shown = visibleCount()
+  var content = max(0, shown * 140 - 10)
+  maxScroll = max(0, content - 236)
+  if scrollY > maxScroll then
+    scrollY = maxScroll
+  end
+  var first = int(scrollY / 140)
+  var slot = first
+  while slot < shown and slot < first + 3 do
+    var item = itemAt(slot)
+    if item >= 0 then drawCard(item, 46 + slot * 140 - scrollY, clipTop, clipBottom) end
+    slot = slot + 1
+  end
+  if shown == 0 then
+    textcolor565(subColor)
+    fontsize(2)
+    if tab == 0 then textc(120, 150, "No apps available") end
+    if tab == 1 then textc(120, 150, "No system updates available") end
+  end
+  drawScrollBar(40, 242, max(content, 242))
+end
+
+def drawList()
+  if smooth == 1 then
+    var shown = visibleCount()
+    var content = max(0, shown * 140 - 10)
+    maxScroll = max(0, content - 236)
+    if scrollY > maxScroll then scrollY = maxScroll end
+    var first = int(scrollY / 140)
+    var slot = first
+    var slotY = 46 + first * 140 - scrollY
+    var firstY = slotY
+    gfx.unstash()
+    while slotY < 282 do
+      gfx.origin(0, 0 - slotY)
+      setcolor565(bgColor)
+      rect(0, slotY, 240, 140)
+      var item = itemAt(slot)
+      if item >= 0 then drawCard(item, slotY, slotY, slotY + 140) end
+      gfx.pushClip(0, slotY, 0, 40, 240, 242)
+      slot = slot + 1
+      slotY = slotY + 140
+    end
+    gfx.stash()
+    if firstY > 40 then
+      setcolor565(bgColor)
+      rect(0, 40, 240, firstY - 40)
+    end
+    if shown == 0 then
+      textcolor565(subColor)
+      fontsize(2)
+      if tab == 0 then textc(120, 150, "No apps available") end
+      if tab == 1 then textc(120, 150, "No system updates available") end
+    end
+    drawScrollBar(40, 242, max(content, 242))
+  else
+    drawListLayer(40, 282)
+  end
+  drawTabs()
+  ui.header("OpenStore")
+end
+
+def drawDetailLayer(clipTop, clipBottom)
+  setcolor565(bgColor)
+  rect(0, 50, 240, 270)
+  var top = 62 - scrollY
+  if top < clipBottom and top + 176 > clipTop then
+    var appName = store.name(chosen)
+    var letter = upper(substr(appName, 0, 1))
+    if len(letter) == 0 then letter = "?" end
+    setcolor565(store.color(chosen))
+    rrect(14, top, 72, 72, 15)
+    textcolor(255, 255, 255)
+    fontsize(4)
+    textc(50, top + 36, letter)
+    fontsize(2)
+    textcolor565(mainColor)
+    textml(98, top + 15, textfit(appName, 128))
+    fontsize(1)
+    textcolor565(subColor)
+    textml(98, top + 36, textfit(store.developer(chosen), 128))
+    textml(98, top + 54, "Version " + store.remoteVersion(chosen))
+    drawActions(chosen, 18, top + 84)
+  end
+  if 188 - scrollY < clipBottom and 206 - scrollY > clipTop then
+    textcolor565(mainColor)
+    fontsize(2)
+    text(14, 188 - scrollY, "About this app")
+  end
+  var descTop = 216 - scrollY
+  if descTop < clipBottom and descTop + detailHeight > clipTop then
+    fontsize(1)
+    textcolor565(subColor)
+    var lineLimit = int((scrollY + clipBottom - 216) / 13) + 2
+    if lineLimit < 1 then lineLimit = 1 end
+    textblock(14, 216, 212, detailText, 13, scrollY, clipTop, clipBottom, lineLimit)
+  end
+  var content = 186 + detailHeight
+  maxScroll = max(0, content - 270)
+  if scrollY > maxScroll then
+    scrollY = maxScroll
+    redraw = 1
+  end
+  drawScrollBar(50, 270, max(content, 270))
+end
+
+def drawDetail()
+  if smooth == 1 then
+    gfx.unstash()
+    gfx.origin(0, -50)
+    drawDetailLayer(50, 190)
+    gfx.push(0, 50)
+    gfx.origin(0, -190)
+    drawDetailLayer(190, 320)
+    gfx.push(0, 190)
+    gfx.stash()
+  else
+    drawDetailLayer(50, 320)
+  end
+  ui.backHeader("OpenStore")
+end
+
+def refreshCatalog()
+  cls()
+  ui.header("OpenStore")
+  textcolor565(subColor)
+  fontsize(2)
+  textc(120, 150, "Loading catalog...")
+  count = store.refresh()
+  if count < 0 then
+    ui.alert("OpenStore", store.error())
+    exit()
+  end
+  if count == 0 then
+    ui.alert("OpenStore", "No apps are published yet")
+    exit()
+  end
+end
+
+def installItem(item)
+  var appId = store.id(item)
+  var appName = store.name(item)
+  var local = store.versionCode(appId)
+  var remote = store.remoteVersionCode(item)
+  if local > remote then
+    ui.alert(appName, "Installed version is newer than the catalog.")
+    return
+  end
+  if local == remote and local > 0 then
+    ui.alert(appName, "This version is already installed.")
+    return
+  end
+
+  var url = store.url(item)
+  var sha = store.sha256(item)
+  var scope = store.scope(item)
+  if smooth == 1 then gfx.end() end
+  smooth = 0
+  var ok = store.install(url, sha, appId, scope, 1)
+  if ok == 1 then
+    if scope == "system" then
+      ui.alert(appName, "Installed. Restart OpenOS to apply the system update.")
+    else
+      ui.alert(appName, "Installed. The app will appear on Home.")
+    end
+  else
+    var why = store.error()
+    if len(why) > 0 then
+      ui.alert("Install failed", why)
+    end
+  end
+
+  count = store.refresh()
+  if count < 0 then
+    ui.alert("OpenStore", store.error())
+    exit()
+  end
+  if view == 1 and item < count then
+    detailText = store.description(item)
+    fontsize(1)
+    detailHeight = textblock(14, 216, 212, detailText, 13, 0, 0, 0, 0)
+  end
+  smooth = gfx.begin(240, 140, 8)
+  if smooth == 1 then gfx.stash() end
+  redraw = 1
+end
+
+def uninstallItem(item)
+  if canUninstall(item) == 0 then
+    return
+  end
+  var appId = store.id(item)
+  var appName = store.name(item)
+  var ok = store.remove(appId, appName)
+  if ok == 1 then
+    ui.alert(appName, "Uninstalled. App data was kept.")
+  else
+    var why = store.error()
+    if len(why) > 0 then
+      ui.alert("Uninstall failed", why)
+    end
+  end
+
+  redraw = 1
+end
+
+def openDetail(item)
+  if tab == 0 then appsScroll = scrollY end
+  if tab == 1 then systemScroll = scrollY end
+  chosen = item
+  detailText = store.description(item)
+  fontsize(1)
+  detailHeight = textblock(14, 216, 212, detailText, 13, 0, 0, 0, 0)
+  view = 1
+  scrollY = 0
+  maxScroll = 0
+  redraw = 1
+end
+
+def tapList(px, py)
+  if py >= 282 then
+    if tab == 0 then appsScroll = scrollY end
+    if tab == 1 then systemScroll = scrollY end
+    if px < 120 then tab = 0 end
+    if px >= 120 then tab = 1 end
+    if tab == 0 then scrollY = appsScroll end
+    if tab == 1 then scrollY = systemScroll end
+    maxScroll = 0
+    redraw = 1
+    return
+  end
+  if py < 40 then
+    return
+  end
+  var logical = py + scrollY - 46
+  if logical < 0 then
+    return
+  end
+  var slot = int(logical / 140)
+  var inside = logical - slot * 140
+  var item = itemAt(slot)
+  if item < 0 or inside >= 130 then
+    return
+  end
+  if px >= 16 and px <= 80 and inside >= 90 and inside <= 118 then
+    installItem(item)
+  elif px >= 88 and px <= 174 and inside >= 90 and inside <= 118 and canUninstall(item) == 1 then
+    uninstallItem(item)
+  else
+    openDetail(item)
+  end
+end
+
+def tapDetail(px, py)
+  if py < 50 and px < 84 then
+    view = 0
+    if tab == 0 then scrollY = appsScroll end
+    if tab == 1 then scrollY = systemScroll end
+    maxScroll = 0
+    detailText = ""
+    detailHeight = 0
+    redraw = 1
+    return
+  end
+  var logical = py + scrollY
+  if px >= 18 and px <= 82 and logical >= 146 and logical <= 174 then
+    installItem(chosen)
+  end
+  if px >= 90 and px <= 176 and logical >= 146 and logical <= 174 and canUninstall(chosen) == 1 then
+    uninstallItem(chosen)
+  end
+end
+
+drainTouch()
+refreshCatalog()
+smooth = gfx.begin(240, 140, 8)
+if smooth == 1 then gfx.stash() end
+redraw = 1
+
+loop
+  if redraw == 1 then
+    if pressed == 0 or millis() - lastFrame >= 28 then
+      redraw = 0
+      if view == 0 then
+        drawList()
+      else
+        drawDetail()
+      end
+      lastFrame = millis()
+    end
+  end
+
+  if touch.down() == 1 then
+    var px = touch.x()
+    var py = touch.y()
+    lastX = px
+    lastY = py
+    if pressed == 0 then
+      pressed = 1
+      dragging = 0
+      startX = px
+      startY = py
+      startScroll = scrollY
+    else
+      var delta = py - startY
+      if abs(delta) > 5 then
+        dragging = 1
+      end
+      if dragging == 1 then
+        var nextScroll = clamp(startScroll - delta, 0, maxScroll)
+        if nextScroll != scrollY then
+          scrollY = nextScroll
+          redraw = 1
+        end
+      end
+    end
+  else
+    if pressed == 1 then
+      pressed = 0
+      if dragging == 0 then
+        if view == 0 then
+          tapList(lastX, lastY)
+        else
+          tapDetail(lastX, lastY)
+        end
+      end
+    end
+  end
+  if pressed == 1 then wait(3) end
+  if pressed == 0 then wait(10) end
+end
