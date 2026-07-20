@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "id": "opentest.clicker",
+  "name": "Clicker Test",
+  "version": "1.0",
+  "versionCode": 1,
+  "entry": "clicker.osa",
+  "scope": "user",
+  "isApp": true
+}

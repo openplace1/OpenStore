@@ -107,10 +107,26 @@
         "clicker.osa": "apps\\clicker.osa"
       },
       "developer": "openplace1",
-      "summary": "Simple clicker app",
-      "description": "This application serves as a dedicated platform for numerical growth that revolves entirely around a singular integer value which represents the core metric of the user experience. The architectural foundation of this system is based on a rigid set of three distinct mathematical operations that define every possible interaction within the interface. These operations are limited strictly to addition by one, subtraction by one, and multiplication by two. By enforcing these specific constraints, the application provides a highly predictable and consistent environment where the primary challenge lies in the strategic sequencing of these operations to achieve maximum numerical value. The user interface is designed to support high frequency interactions and requires immediate responsiveness to ensure that every input is processed without latency. When the user selects the addition function, the current numerical state is incremented by a single unit. This serves as the primary method for establishing a base value from which more complex growth can be derived. Conversely, the subtraction function allows for a single unit decrease, which acts as a necessary corrective tool for users to manage their current balance. This function is particularly important when the user aims to refine their total to reach specific values that might be required for future multipliers or specific gameplay goals. The most critical component of this system is the multiplication operation which scales the current total by a factor of two. This is the primary driver of rapid expansion and is the most sought after interaction for any user attempting to reach high numerical targets. Because this operation is restricted to a binary multiplier, it requires the user to build up a substantial base value through the additive function before the exponential power of the multiplication can be fully utilized. This creates a balanced gameplay loop where the user must alternate between steady accumulation and sharp growth spurts. The technical implementation of this logic ensures that there is no risk of numerical instability or floating point errors that could potentially compromise the integrity of the total. The system is built to handle integers of arbitrary size which guarantees that the application can accommodate the potentially massive figures that result from sustained multiplicative sequences. The interaction design is intentionally minimalist to ensure that the user remains focused on the mathematical progression rather than being distracted by unnecessary visual elements or secondary mechanics. Engagement in this application is driven by the intrinsic reward of watching the number climb higher through a mix of deliberate and precise inputs. The restriction on the operations creates a unique rhythm where the user must calculate the most efficient path forward. Every click is a strategic decision because the order in which one chooses to add, subtract, or multiply significantly changes the final outcome. This makes the application more of a mental exercise in optimization than a simple clicker game. The simplicity of the ruleset is its greatest strength as it allows for an experience that is easy to understand but challenging to master. The feedback mechanism is instantaneous so the user receives immediate confirmation of their progress after every interaction. The application is designed to be a durable and efficient tool for those who enjoy the process of numerical manipulation and the satisfaction that comes from reaching higher and higher milestones through a clear and logical progression system. By removing all complexity that does not contribute to the core mathematical loop the system achieves a level of focus that is rare in modern software applications of this type. It remains a pure and unadulterated exploration of basic arithmetic principles applied to an incremental gaming context.",
-      "appColor": "#611818"
+      "summary": "Clicker testing app",
+      "description": "What do you fucking except from a description from an a clicker app",
+      "appColor": "#641353"
     }
   ],
-  "appsCache": {}
+  "appsCache": {
+    "apps\\clicker.osa": {
+      "sha256": "f83638c2f46ef6c9e4383b3c1cede124a47121e6f25a70fc40f30bf71eea864e",
+      "metadata": {
+        "id": "opentest.clicker",
+        "name": "Clicker Test",
+        "summary": "Clicker testing app",
+        "description": "What do you fucking except from a description from an a clicker app",
+        "developer": "openplace1",
+        "version": "1.0",
+        "versionCode": 1,
+        "appColor": "#641353",
+        "scope": "user",
+        "isApp": true
+      }
+    }
+  }
 }
