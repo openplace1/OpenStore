@@ -82,16 +82,6 @@
       "appColor": "#FFCC00"
     },
     {
-      "manifest": "store/manifests/openos.compiler.json",
-      "files": {
-        "app.osa": "store/system_apps/compiler.osa"
-      },
-      "developer": "openplace1",
-      "summary": "Compile OSA source files on the device.",
-      "description": "Updates the optional on-device OSA compiler interface.",
-      "appColor": "#8E8E93"
-    },
-    {
       "manifest": "store/manifests/openos.openstore.json",
       "files": {
         "app.osa": "store/system_apps/openstore.osa"
