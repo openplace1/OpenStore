@@ -250,8 +250,11 @@ def collect_metadata_for(osa_path: Path, existing_ids: set[str]) -> dict[str, An
 
 def discover_apps(config: dict[str, Any]) -> None:
     """Scan APPS_DIR for *.osa files, prompting for metadata on new/changed
-    files, and rewrite config["packages"] with auto-generated manifest/files
-    entries. Mutates config in place.
+    files, and merge auto-generated manifest/files entries into
+    config["packages"]. Existing entries not tied to an APPS_DIR .osa file
+    (e.g. hand-authored packages, or entries for .osa files temporarily
+    missing from disk) are left untouched rather than being wiped out.
+    Mutates config in place.
     """
     require(APPS_DIR.is_dir(), f"apps directory not found: {APPS_DIR}")
 
@@ -265,7 +268,17 @@ def discover_apps(config: dict[str, Any]) -> None:
         if isinstance(entry, dict) and isinstance(entry.get("id"), str)
     }
 
-    packages: list[dict[str, Any]] = []
+    existing_packages: list[Any] = config.get("packages")
+    if not isinstance(existing_packages, list):
+        existing_packages = []
+    # Index existing entries by manifest path, since that's the stable
+    # identifier we generate per .osa file (apps/<stem>.manifest.json).
+    by_manifest: dict[str, dict[str, Any]] = {}
+    for entry in existing_packages:
+        if isinstance(entry, dict) and isinstance(entry.get("manifest"), str):
+            by_manifest[entry["manifest"]] = entry
+
+    discovered_manifests: set[str] = set()
     for osa_path in osa_files:
         rel = str(osa_path.relative_to(ROOT))
         digest = sha256_file(osa_path)
@@ -300,16 +313,34 @@ def discover_apps(config: dict[str, Any]) -> None:
             json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
 
-        packages.append({
-            "manifest": str(manifest_path.relative_to(ROOT)),
+        manifest_rel = str(manifest_path.relative_to(ROOT))
+        discovered_manifests.add(manifest_rel)
+        by_manifest[manifest_rel] = {
+            "manifest": manifest_rel,
             "files": {osa_path.name: str(osa_path.relative_to(ROOT))},
             "developer": metadata["developer"],
             "summary": metadata["summary"],
             "description": metadata["description"],
             "appColor": metadata["appColor"],
-        })
+        }
 
-    config["packages"] = packages
+    # Preserve original ordering: keep pre-existing entries where they were
+    # (updated in place if rediscovered), and append newly discovered ones
+    # at the end. Nothing unrelated to apps/*.osa is ever dropped here.
+    merged: list[dict[str, Any]] = []
+    seen_manifests: set[str] = set()
+    for entry in existing_packages:
+        if isinstance(entry, dict) and isinstance(entry.get("manifest"), str) \
+                and entry["manifest"] in by_manifest:
+            merged.append(by_manifest[entry["manifest"]])
+            seen_manifests.add(entry["manifest"])
+        else:
+            merged.append(entry)
+    for manifest_rel in discovered_manifests:
+        if manifest_rel not in seen_manifests:
+            merged.append(by_manifest[manifest_rel])
+
+    config["packages"] = merged
 
 
 def build_package(package: Any, seen_ids: set[str], base_url: str) -> dict[str, object]:

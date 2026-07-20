@@ -1,0 +1,63 @@
+#app "Counter"
+#appColor "#2979FF"
+#isApp true
+
+var count = 0
+
+var btnX = 40
+var btnY = 200
+var btnW = 160
+var btnH = 60
+
+def drawUI()
+    cls()
+
+    textcolor(255, 255, 255)
+    fontsize(2)
+    textc(120, 40, "Counter")
+
+    fontsize(7)
+    textcolor(0, 200, 255)
+    textc(120, 130, str(count))
+
+    setcolor(41, 121, 255)
+    rrect(btnX, btnY, btnW, btnH, 10)
+    textcolor(255, 255, 255)
+    fontsize(2)
+    textc(btnX + int(btnW / 2), btnY + int(btnH / 2), "Tap to add")
+
+    setcolor(200, 60, 60)
+    rrect(40, 280, 70, 30, 8)
+    textcolor(255, 255, 255)
+    fontsize(1)
+    textc(75, 295, "Reset")
+end
+
+def inButton(x, y, w, h)
+    if touch.x() >= x then
+        if touch.x() <= x + w then
+            if touch.y() >= y then
+                if touch.y() <= y + h then
+                    return 1
+                end
+            end
+        end
+    end
+    return 0
+end
+
+drawUI()
+
+loop
+    if touch.released() then
+        if inButton(btnX, btnY, btnW, btnH) then
+            count = count + 1
+            drawUI()
+        elif inButton(40, 280, 70, 30) then
+            count = 0
+            drawUI()
+        end
+    end
+
+    wait(30)
+end
