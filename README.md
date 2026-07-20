@@ -1,3 +1,6 @@
+i crashed out so i am doing an a week break :3 
+
+
 # OpenStore repository
 
 This repository hosts the OpenStore catalog and OPK packages separately from
