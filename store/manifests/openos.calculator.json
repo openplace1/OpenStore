@@ -4,6 +4,8 @@
   "name": "Calc",
   "version": "1.0.0",
   "versionCode": 1,
+  "minSdk": 1,
+  "minOpenOS": 1,
   "entry": "app.osa",
   "scope": "system",
   "isApp": true

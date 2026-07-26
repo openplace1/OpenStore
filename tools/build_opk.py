@@ -117,6 +117,12 @@ def validate_manifest(value: Any, source_name: str) -> dict[str, Any]:
     require(isinstance(value["versionCode"], int) and
             not isinstance(value["versionCode"], bool) and value["versionCode"] >= 1,
             f"{source_name}: versionCode must be a positive integer")
+    for field in ("minSdk", "minOpenOS"):
+        compatibility = value.get(field, 1)
+        require(isinstance(compatibility, int) and
+                not isinstance(compatibility, bool) and 1 <= compatibility <= 32767,
+                f"{source_name}: {field} must be an integer from 1 to 32767")
+        value[field] = compatibility
     entry = safe_archive_path(value["entry"])
     require(entry.lower().endswith((".osa", ".osac")),
             f"{source_name}: entry must be .osa or .osac")
@@ -199,6 +205,20 @@ def prompt_version_code() -> int:
         return value
 
 
+def prompt_compatibility(label: str) -> int:
+    while True:
+        raw = input(f"  {label} (positive integer) [1]: ").strip() or "1"
+        try:
+            value = int(raw)
+        except ValueError:
+            print(f"    -> {label} must be an integer")
+            continue
+        if not 1 <= value <= 32767:
+            print(f"    -> {label} must be between 1 and 32767")
+            continue
+        return value
+
+
 def prompt_color() -> str:
     while True:
         raw = input("  appColor (#RRGGBB): ").strip()
@@ -236,6 +256,8 @@ def collect_metadata_for(osa_path: Path, existing_ids: set[str]) -> dict[str, An
     developer = prompt_str("developer (1-64 characters)", max_len=64)
     version = prompt_version()
     version_code = prompt_version_code()
+    min_sdk = prompt_compatibility("minSdk")
+    min_openos = prompt_compatibility("minOpenOS")
     app_color = prompt_color()
     scope = prompt_scope()
     is_app = prompt_is_app()
@@ -247,6 +269,8 @@ def collect_metadata_for(osa_path: Path, existing_ids: set[str]) -> dict[str, An
         "developer": developer,
         "version": version,
         "versionCode": version_code,
+        "minSdk": min_sdk,
+        "minOpenOS": min_openos,
         "appColor": app_color,
         "scope": scope,
         "isApp": is_app,
@@ -309,6 +333,8 @@ def discover_apps(config: dict[str, Any]) -> None:
             "name": metadata["name"],
             "version": metadata["version"],
             "versionCode": metadata["versionCode"],
+            "minSdk": metadata.get("minSdk", 1),
+            "minOpenOS": metadata.get("minOpenOS", 1),
             "entry": osa_path.name,
             "scope": metadata["scope"],
             "isApp": metadata["isApp"],
@@ -440,6 +466,8 @@ def build_package(package: Any, seen_ids: set[str], base_url: str) -> dict[str, 
         "name": manifest["name"],
         "version": manifest["version"],
         "versionCode": manifest["versionCode"],
+        "minSdk": manifest["minSdk"],
+        "minOpenOS": manifest["minOpenOS"],
         "scope": manifest["scope"],
         "developer": developer,
         "summary": summary,

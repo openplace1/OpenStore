@@ -4,6 +4,8 @@
   "name": "Pong 2D",
   "version": "1.0.0",
   "versionCode": 1,
+  "minSdk": 2,
+  "minOpenOS": 1,
   "entry": "pong2d.osa",
   "scope": "user",
   "isApp": true

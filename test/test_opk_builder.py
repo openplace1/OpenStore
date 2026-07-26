@@ -16,6 +16,27 @@ SPEC.loader.exec_module(build_opk)
 
 
 class OpkBuilderTests(unittest.TestCase):
+    def test_manifest_compatibility_levels_are_validated(self) -> None:
+        base = {
+            "schema": 1,
+            "id": "test.app",
+            "name": "Test",
+            "version": "1.0.0",
+            "versionCode": 1,
+            "entry": "app.osa",
+            "scope": "user",
+            "isApp": True,
+        }
+        validated = build_opk.validate_manifest(dict(base), "test manifest")
+        self.assertEqual(validated["minSdk"], 1)
+        self.assertEqual(validated["minOpenOS"], 1)
+        for field in ("minSdk", "minOpenOS"):
+            for invalid in (0, -1, 32768, True, "2"):
+                with self.subTest(field=field, invalid=invalid), self.assertRaises(SystemExit):
+                    manifest = dict(base)
+                    manifest[field] = invalid
+                    build_opk.validate_manifest(manifest, "test manifest")
+
     def test_unsafe_archive_paths_are_rejected(self) -> None:
         for path in ("../app.osa", "/app.osa", "a//b", "a/./b", "a\\b", "C:app.osa"):
             with self.subTest(path=path), self.assertRaises(SystemExit):
@@ -34,6 +55,8 @@ class OpkBuilderTests(unittest.TestCase):
             self.assertGreater(len(item["description"]), 0)
             self.assertLessEqual(len(item["description"].encode("utf-8")), 10000)
             self.assertRegex(item["appColor"], r"^#[0-9A-F]{6}$")
+            self.assertGreaterEqual(item["minSdk"], 1)
+            self.assertGreaterEqual(item["minOpenOS"], 1)
             package_path = ROOT / "store" / "packages" / f"{item['id']}.opk"
             self.assertLessEqual(package_path.stat().st_size, build_opk.MAX_PACKAGE_BYTES)
             digest = hashlib.sha256(package_path.read_bytes()).hexdigest()
@@ -60,6 +83,8 @@ class OpkBuilderTests(unittest.TestCase):
                 self.assertEqual(manifest["id"], item["id"])
                 self.assertEqual(manifest["scope"], item["scope"])
                 self.assertEqual(manifest["versionCode"], item["versionCode"])
+                self.assertEqual(manifest["minSdk"], item["minSdk"])
+                self.assertEqual(manifest["minOpenOS"], item["minOpenOS"])
                 self.assertIn(manifest["entry"], archive.namelist())
 
 

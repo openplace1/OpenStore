@@ -88,7 +88,7 @@
       },
       "developer": "openplace1",
       "summary": "Install and update OpenOS applications.",
-      "description": "Updates OpenStore, including user applications, system application updates and OPK package management.",
+      "description": "Updates OpenStore with version compatibility checks, Update All, user applications, system application updates and OPK package management.",
       "appColor": "#0A84FF"
     },
     {
@@ -133,6 +133,8 @@
         "developer": "openplace1",
         "version": "1.0.0",
         "versionCode": 1,
+        "minSdk": 2,
+        "minOpenOS": 1,
         "appColor": "#5E5CE6",
         "scope": "user",
         "isApp": true
@@ -148,6 +150,8 @@
         "developer": "openplace1",
         "version": "1.0.0",
         "versionCode": 1,
+        "minSdk": 2,
+        "minOpenOS": 1,
         "appColor": "#34C759",
         "scope": "user",
         "isApp": true
@@ -163,6 +167,8 @@
         "developer": "openplace1",
         "version": "1.0.0",
         "versionCode": 1,
+        "minSdk": 2,
+        "minOpenOS": 1,
         "appColor": "#FF9F0A",
         "scope": "user",
         "isApp": true

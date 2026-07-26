@@ -24,3 +24,7 @@ https://raw.githubusercontent.com/openplace1/OpenStore/main/store/catalog.json
 ```
 
 Package URLs are generated with the base URL defined in `store/build.json`.
+
+Packages declare minimum OSA SDK and OpenOS version codes. OpenStore disables
+incompatible installs, while **Update All** installs every compatible update
+after one confirmation.

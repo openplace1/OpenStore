@@ -12,6 +12,7 @@ includes an OPK URL, its SHA-256 digest and a monotonically increasing
 | `apps` | Array of published package entries (maximum 64 on device) |
 | `id`, `name`, `scope` | Must agree with the OPK manifest |
 | `version`, `versionCode` | Display version and update ordering |
+| `minSdk`, `minOpenOS` | Minimum OSA SDK and OpenOS version code |
 | `developer` | Publisher name, maximum 64 characters |
 | `summary` | Store-card description, maximum 50 characters |
 | `description` | Detail-page text, maximum 10,000 UTF-8 bytes |
@@ -36,6 +37,8 @@ without allocating the roughly 44 KB working buffer required by DEFLATE.
 | `name` | string | Display name |
 | `version` | string | Human-readable version |
 | `versionCode` | integer | Increasing update number |
+| `minSdk` | integer | Oldest supported OSA SDK level; defaults to `1` |
+| `minOpenOS` | integer | Oldest supported OpenOS version code; defaults to `1` |
 | `entry` | string | Relative path to `.osa` or `.osac` entry point |
 | `scope` | string | `user` or `system` |
 | `isApp` | boolean | Whether the package is intended as a Home app |
@@ -81,7 +84,9 @@ The device rejects encrypted ZIPs, data descriptors, ZIP64-sized payloads,
 unsafe paths, duplicate files, unsupported methods and CRC/SHA mismatches.
 Installation uses a staging directory and rollback backup.
 The URL, hash, ID, scope, display name and version metadata must all agree
-between the active catalog and the downloaded manifest. Downgrades and
+between the active catalog and the downloaded manifest. Compatibility metadata
+must also agree, and the kernel rejects packages requiring a newer SDK or
+OpenOS version. Downgrades and
 cross-scope replacements are rejected.
 
 The build tool enforces the same limits before publishing, writes packages and
