@@ -59,6 +59,11 @@ def compact_json(value: object) -> bytes:
     return (json.dumps(value, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
 
 
+def write_text_lf(path: Path, value: str) -> None:
+    with path.open("w", encoding="utf-8", newline="\n") as stream:
+        stream.write(value)
+
+
 def package_base_url(value: Any) -> str:
     require(isinstance(value, str) and 8 < len(value) <= 2048,
             "packageBaseUrl must be an HTTPS URL")
@@ -280,7 +285,7 @@ def discover_apps(config: dict[str, Any]) -> None:
 
     discovered_manifests: set[str] = set()
     for osa_path in osa_files:
-        rel = str(osa_path.relative_to(ROOT))
+        rel = osa_path.relative_to(ROOT).as_posix()
         digest = sha256_file(osa_path)
         cached = cache.get(rel)
 
@@ -309,15 +314,16 @@ def discover_apps(config: dict[str, Any]) -> None:
             "isApp": metadata["isApp"],
         }
         manifest_path = APPS_DIR / f"{osa_path.stem}.manifest.json"
-        manifest_path.write_text(
-            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        write_text_lf(
+            manifest_path,
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
         )
 
-        manifest_rel = str(manifest_path.relative_to(ROOT))
+        manifest_rel = manifest_path.relative_to(ROOT).as_posix()
         discovered_manifests.add(manifest_rel)
         by_manifest[manifest_rel] = {
             "manifest": manifest_rel,
-            "files": {osa_path.name: str(osa_path.relative_to(ROOT))},
+            "files": {osa_path.name: osa_path.relative_to(ROOT).as_posix()},
             "developer": metadata["developer"],
             "summary": metadata["summary"],
             "description": metadata["description"],
@@ -459,8 +465,9 @@ def main() -> None:
     # Persist the cache (and freshly generated packages list) immediately so
     # that manifest generation and metadata prompts are never repeated after
     # a later validation failure.
-    build_json_path.write_text(
-        json.dumps(config, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    write_text_lf(
+        build_json_path,
+        json.dumps(config, ensure_ascii=False, indent=2) + "\n",
     )
 
     require(isinstance(config.get("packages"), list), "build.json must contain a packages array")

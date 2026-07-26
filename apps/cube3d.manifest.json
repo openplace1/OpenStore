@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "id": "openplace.cube3d",
+  "name": "3D Cube",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "entry": "cube3d.osa",
+  "scope": "user",
+  "isApp": true
+}

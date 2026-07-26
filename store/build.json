@@ -90,7 +90,33 @@
       "summary": "Install and update OpenOS applications.",
       "description": "Updates OpenStore, including user applications, system application updates and OPK package management.",
       "appColor": "#0A84FF"
+    },
+    {
+      "manifest": "apps/cube3d.manifest.json",
+      "files": {
+        "cube3d.osa": "apps/cube3d.osa"
+      },
+      "developer": "openplace1",
+      "summary": "Rotating 3D cube demo for the OSA SDK.",
+      "description": "A lightweight rotating 3D cube that demonstrates the OSA pseudo-3D API. Tap the viewport to switch between wireframe, solid and solid-with-edges rendering modes.",
+      "appColor": "#5E5CE6"
     }
   ],
-  "appsCache": {}
+  "appsCache": {
+    "apps/cube3d.osa": {
+      "sha256": "2196c8def10eeff4dd05e42a48a077c37f8b16276011a5a9f692960df1e394fb",
+      "metadata": {
+        "id": "openplace.cube3d",
+        "name": "3D Cube",
+        "summary": "Rotating 3D cube demo for the OSA SDK.",
+        "description": "A lightweight rotating 3D cube that demonstrates the OSA pseudo-3D API. Tap the viewport to switch between wireframe, solid and solid-with-edges rendering modes.",
+        "developer": "openplace1",
+        "version": "1.0.0",
+        "versionCode": 1,
+        "appColor": "#5E5CE6",
+        "scope": "user",
+        "isApp": true
+      }
+    }
+  }
 }

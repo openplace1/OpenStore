@@ -1,0 +1,63 @@
+#app "3D Cube"
+#isApp true
+#appColor "#5E5CE6"
+
+# Example for the lightweight OSA pseudo-3D SDK.
+# Tap the viewport to switch: wireframe / solid / solid with edges.
+
+while touch.down() == 1 do
+  wait(10)
+end
+wait(100)
+
+var rotationX = 0
+var rotationY = 0
+var rotationZ = 0
+var fps = 20
+var mode = 2
+
+bg(7, 10, 18)
+
+# 160 x 160 at 8-bit depth needs only 25.6 KB. gfx.auto() falls back to
+# 1-bit or direct rendering if the heap is fragmented.
+var spriteDepth = gfx.auto(160, 160, 8)
+if spriteDepth > 0 then
+  d3.camera(80, 82, 118, 5)
+end
+if spriteDepth == 0 then
+  d3.camera(120, 160, 118, 5)
+end
+
+loop
+  bg(7, 10, 18)
+
+  setcolor(94, 170, 255)
+  d3.cube(0, 0, 0, 3.1, rotationX, rotationY, rotationZ, mode)
+
+  textcolor(235, 240, 255)
+  fontsize(2)
+  text(5, 5, "3D Cube")
+  text(5, 24, str(round(fps)) + " FPS")
+
+  if d3.quality() == 0 then
+    textcolor(255, 190, 90)
+    text(5, 43, "adaptive wire")
+  end
+
+  if spriteDepth > 0 then
+    gfx.push(40, 78)
+  end
+
+  if touch.tap(40, 78, 160, 160) == 1 then
+    mode = mode + 1
+    if mode > 2 then
+      mode = 0
+    end
+  end
+
+  rotationX = wrap(rotationX + 0.027, 0, tau())
+  rotationY = wrap(rotationY + 0.041, 0, tau())
+  rotationZ = wrap(rotationZ + 0.013, 0, tau())
+
+  fps = d3.frame(20)
+end
