@@ -1,0 +1,149 @@
+#app "Pong 2D"
+#isApp true
+#appColor "#34C759"
+
+# One-player Pong. Move the paddle by touching or dragging inside the field.
+
+while touch.down() == 1 do
+  wait(10)
+end
+wait(80)
+
+if sdk.version() < 2 then
+  ui.alert("Update required", "Pong 2D needs OSA SDK 2.")
+  exit()
+end
+
+var fieldX = 40
+var fieldY = 55
+var fieldW = 160
+var fieldH = 220
+var paddleW = 46
+var paddleH = 7
+var paddleX = 57
+var paddleY = 197
+var ballX = 80
+var ballY = 125
+var ballR = 4
+var ballVX = 2.2
+var ballVY = -2.7
+var score = 0
+var best = 0
+var gameOver = 0
+var fps = 30
+var dashY = 43
+var offsetX = 0
+var offsetY = 0
+
+bg(5, 9, 18)
+var spriteDepth = gfx.auto(fieldW, fieldH, 8)
+if spriteDepth == 0 then
+  offsetX = fieldX
+  offsetY = fieldY
+end
+
+def resetGame()
+  paddleX = 57
+  ballX = 80
+  ballY = 125
+  ballVY = -2.7
+  if random(0, 2) == 0 then
+    ballVX = -2.2
+  else
+    ballVX = 2.2
+  end
+  score = 0
+  gameOver = 0
+end
+
+loop
+  bg(5, 9, 18)
+
+  if gameOver == 0 then
+    if touch.down() == 1 then
+      if touch.in(fieldX, fieldY, fieldW, fieldH) == 1 then
+        paddleX = touch.x() - fieldX - paddleW / 2
+        paddleX = clamp(paddleX, 2, fieldW - paddleW - 2)
+      end
+    end
+
+    ballX = ballX + ballVX
+    ballY = ballY + ballVY
+
+    if ballX - ballR <= 2 then
+      ballX = 2 + ballR
+      ballVX = abs(ballVX)
+    end
+    if ballX + ballR >= fieldW - 2 then
+      ballX = fieldW - 2 - ballR
+      ballVX = -abs(ballVX)
+    end
+    if ballY - ballR <= 38 then
+      ballY = 38 + ballR
+      ballVY = abs(ballVY)
+    end
+
+    if ballVY > 0 and ballY + ballR >= paddleY then
+      if ballY + ballR <= paddleY + paddleH + 4 then
+        if ballX >= paddleX - ballR and ballX <= paddleX + paddleW + ballR then
+          ballY = paddleY - ballR
+          ballVY = -abs(ballVY) - 0.06
+          ballVX = ballVX + (ballX - paddleX - paddleW / 2) * 0.035
+          ballVX = clamp(ballVX, -4.2, 4.2)
+          score = score + 1
+          if score > best then
+            best = score
+          end
+        end
+      end
+    end
+
+    if ballY - ballR > fieldH then
+      gameOver = 1
+    end
+  else
+    if touch.tap(fieldX, fieldY, fieldW, fieldH) == 1 then
+      resetGame()
+    end
+  end
+
+  setcolor(18, 31, 52)
+  rect(offsetX, offsetY, fieldW, fieldH)
+  setcolor(45, 68, 98)
+  rframe(offsetX + 1, offsetY + 1, fieldW - 2, fieldH - 2, 8)
+
+  dashY = 48
+  setcolor(40, 58, 80)
+  while dashY < 188 do
+    rect(offsetX + 78, offsetY + dashY, 4, 10)
+    dashY = dashY + 18
+  end
+
+  textcolor(235, 245, 255)
+  fontsize(2)
+  text(offsetX + 7, offsetY + 7, "PONG  " + str(score))
+  textcolor(140, 165, 195)
+  text(offsetX + 104, offsetY + 7, "BEST " + str(best))
+
+  setcolor(52, 199, 89)
+  rrect(offsetX + paddleX, offsetY + paddleY, paddleW, paddleH, 3)
+  setcolor(255, 214, 64)
+  circle(offsetX + round(ballX), offsetY + round(ballY), ballR)
+
+  if gameOver == 1 then
+    setcolor(10, 17, 30)
+    rrect(offsetX + 18, offsetY + 78, 124, 62, 10)
+    textcolor(255, 105, 97)
+    fontsize(2)
+    text(offsetX + 45, offsetY + 88, "GAME OVER")
+    textcolor(220, 230, 245)
+    fontsize(1)
+    text(offsetX + 41, offsetY + 116, "Tap to restart")
+  end
+
+  if spriteDepth > 0 then
+    gfx.push(fieldX, fieldY)
+  end
+
+  fps = perf.frame(30)
+end

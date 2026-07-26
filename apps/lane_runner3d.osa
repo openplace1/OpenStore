@@ -1,0 +1,160 @@
+#app "Lane Runner 3D"
+#isApp true
+#appColor "#FF9F0A"
+
+# Tap the left or right half of the viewport to change lane.
+# Avoid the incoming red cube for as long as possible.
+
+while touch.down() == 1 do
+  wait(10)
+end
+wait(80)
+
+if sdk.has("d3") == 0 then
+  ui.alert("Update required", "Lane Runner 3D needs the OSA 3D SDK.")
+  exit()
+end
+
+var viewX = 40
+var viewY = 55
+var viewW = 160
+var viewH = 220
+var offsetX = 0
+var offsetY = 0
+var playerLane = 0
+var playerX = 0
+var obstacleLane = 0
+var obstacleX = 0
+var obstacleZ = 13
+var obstacleSpin = 0
+var speed = 0.16
+var score = 0
+var best = 0
+var gameOver = 0
+var fps = 20
+var gridZ = 0
+
+bg(5, 7, 14)
+var spriteDepth = gfx.auto(viewW, viewH, 8)
+if spriteDepth > 0 then
+  d3.camera(80, 104, 92, 5)
+else
+  offsetX = viewX
+  offsetY = viewY
+  d3.camera(120, 159, 92, 5)
+end
+
+def newObstacle()
+  obstacleLane = random(-1, 2)
+  obstacleX = obstacleLane * 1.75
+  obstacleZ = 13
+  obstacleSpin = random(0, 628) / 100
+end
+
+def resetGame()
+  playerLane = 0
+  playerX = 0
+  speed = 0.16
+  score = 0
+  gameOver = 0
+  newObstacle()
+end
+
+newObstacle()
+
+loop
+  bg(5, 7, 14)
+
+  if gameOver == 0 then
+    if touch.tap(viewX, viewY, viewW / 2, viewH) == 1 then
+      playerLane = playerLane - 1
+      if playerLane < -1 then
+        playerLane = -1
+      end
+    end
+    if touch.tap(viewX + viewW / 2, viewY, viewW / 2, viewH) == 1 then
+      playerLane = playerLane + 1
+      if playerLane > 1 then
+        playerLane = 1
+      end
+    end
+
+    playerX = approach(playerX, playerLane * 1.75, 0.22)
+    obstacleZ = obstacleZ - speed
+    obstacleSpin = obstacleSpin + 0.045
+
+    if obstacleZ < 1.0 and obstacleZ > -1.0 then
+      if obstacleLane == playerLane then
+        gameOver = 1
+        if score > best then
+          best = score
+        end
+      end
+    end
+
+    if obstacleZ <= -1.2 then
+      score = score + 1
+      if score > best then
+        best = score
+      end
+      speed = min(0.31, 0.16 + score * 0.006)
+      newObstacle()
+    end
+  else
+    if touch.tap(viewX, viewY, viewW, viewH) == 1 then
+      resetGame()
+    end
+  end
+
+  setcolor(18, 24, 42)
+  rect(offsetX, offsetY, viewW, viewH)
+
+  setcolor(48, 65, 92)
+  d3.line(-2.7, -2.0, -1.2, -2.7, -2.0, 15)
+  d3.line(-0.88, -2.0, -1.2, -0.88, -2.0, 15)
+  d3.line(0.88, -2.0, -1.2, 0.88, -2.0, 15)
+  d3.line(2.7, -2.0, -1.2, 2.7, -2.0, 15)
+
+  gridZ = -1
+  while gridZ <= 14 do
+    d3.line(-2.7, -2.0, gridZ, 2.7, -2.0, gridZ)
+    gridZ = gridZ + 3
+  end
+
+  setcolor(255, 69, 58)
+  d3.cube(obstacleX, -1.35, obstacleZ, 1.05, obstacleSpin, obstacleSpin * 0.7, 0, 2)
+
+  setcolor(48, 209, 88)
+  d3.cube(playerX, -1.35, -0.45, 1.05, 0.08, -0.2, 0, 2)
+
+  textcolor(240, 245, 255)
+  fontsize(2)
+  text(offsetX + 6, offsetY + 6, "SCORE " + str(score))
+  textcolor(145, 165, 195)
+  text(offsetX + 101, offsetY + 6, "BEST " + str(best))
+
+  setcolor(25, 35, 58)
+  rrect(offsetX + 7, offsetY + 182, 42, 29, 8)
+  rrect(offsetX + 111, offsetY + 182, 42, 29, 8)
+  textcolor(220, 230, 245)
+  fontsize(2)
+  text(offsetX + 23, offsetY + 188, "<")
+  text(offsetX + 127, offsetY + 188, ">")
+
+  if gameOver == 1 then
+    setcolor(9, 13, 24)
+    rrect(offsetX + 20, offsetY + 76, 120, 66, 10)
+    textcolor(255, 105, 97)
+    fontsize(2)
+    text(offsetX + 43, offsetY + 87, "CRASHED")
+    textcolor(225, 233, 245)
+    fontsize(1)
+    text(offsetX + 40, offsetY + 118, "Tap to retry")
+  end
+
+  if spriteDepth > 0 then
+    gfx.push(viewX, viewY)
+  end
+
+  fps = d3.frame(20)
+end

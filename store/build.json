@@ -100,6 +100,26 @@
       "summary": "Rotating 3D cube demo for the OSA SDK.",
       "description": "A lightweight rotating 3D cube that demonstrates the OSA pseudo-3D API. Tap the viewport to switch between wireframe, solid and solid-with-edges rendering modes.",
       "appColor": "#5E5CE6"
+    },
+    {
+      "manifest": "apps/lane_runner3d.manifest.json",
+      "files": {
+        "lane_runner3d.osa": "apps/lane_runner3d.osa"
+      },
+      "developer": "openplace1",
+      "summary": "Dodge incoming cubes across three lanes.",
+      "description": "A lightweight three-lane 3D runner. Tap the left or right side of the screen to change lane, avoid incoming cubes and survive as the speed increases.",
+      "appColor": "#FF9F0A"
+    },
+    {
+      "manifest": "apps/pong2d.manifest.json",
+      "files": {
+        "pong2d.osa": "apps/pong2d.osa"
+      },
+      "developer": "openplace1",
+      "summary": "One-player Pong with touch paddle controls.",
+      "description": "A fast one-player Pong game designed for the OpenOS touchscreen. Drag the paddle, keep the ball in play and beat your best score.",
+      "appColor": "#34C759"
     }
   ],
   "appsCache": {
@@ -114,6 +134,36 @@
         "version": "1.0.0",
         "versionCode": 1,
         "appColor": "#5E5CE6",
+        "scope": "user",
+        "isApp": true
+      }
+    },
+    "apps/pong2d.osa": {
+      "sha256": "33760cab048cad5057e83aa768e9e6bda52b01b98c89f9d5730eb58d2d581cf2",
+      "metadata": {
+        "id": "openplace.pong2d",
+        "name": "Pong 2D",
+        "summary": "One-player Pong with touch paddle controls.",
+        "description": "A fast one-player Pong game designed for the OpenOS touchscreen. Drag the paddle, keep the ball in play and beat your best score.",
+        "developer": "openplace1",
+        "version": "1.0.0",
+        "versionCode": 1,
+        "appColor": "#34C759",
+        "scope": "user",
+        "isApp": true
+      }
+    },
+    "apps/lane_runner3d.osa": {
+      "sha256": "9490d692d16efd4640d5569cd427f7cb3ce84771dc0798bac8c1261c6d89d13c",
+      "metadata": {
+        "id": "openplace.lanerunner3d",
+        "name": "Lane Runner 3D",
+        "summary": "Dodge incoming cubes across three lanes.",
+        "description": "A lightweight three-lane 3D runner. Tap the left or right side of the screen to change lane, avoid incoming cubes and survive as the speed increases.",
+        "developer": "openplace1",
+        "version": "1.0.0",
+        "versionCode": 1,
+        "appColor": "#FF9F0A",
         "scope": "user",
         "isApp": true
       }

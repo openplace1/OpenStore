@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "id": "openplace.lanerunner3d",
+  "name": "Lane Runner 3D",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "entry": "lane_runner3d.osa",
+  "scope": "user",
+  "isApp": true
+}
