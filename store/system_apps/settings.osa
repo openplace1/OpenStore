@@ -345,6 +345,94 @@ def applicationsScreen()
   end
 end
 
+def otaSourceScreen()
+  while 1 == 1 do
+    ui.menuStart("Update Source", 1)
+    ui.menuRow("Current URL", "i", 142, 142, 147, "View >")
+    ui.menuRow("Change URL", "R", 0, 122, 255, ">")
+    ui.menuRow("Use Official Feed", "O", 52, 199, 89, ">")
+    var pick = ui.menuShow()
+    if pick == -1 then return end
+    if pick == 0 then ui.alert("Update Source", ota.source()) end
+    if pick == 1 then
+      var current = ota.source()
+      var next = input("info.json HTTPS URL", current)
+      if next != current then
+        if ota.setSource(next) == 1 then ui.alert("Update Source", "Saved") end
+        if ota.error() != "" then ui.alert("Update Source", ota.error()) end
+      end
+    end
+    if pick == 2 then
+      if ota.setSource("") == 1 then ui.alert("Update Source", "Official feed restored") end
+      if ota.error() != "" then ui.alert("Update Source", ota.error()) end
+    end
+  end
+end
+
+def otaScreen()
+  if sdk.has("ota") == 0 then
+    ui.alert("Software Update", "Requires OpenOS 1.1.0 and a one-time USB migration")
+    return
+  end
+  if ota.supported() == 0 then
+    ui.alert("USB Migration Required", "This device still uses the legacy single-slot partition layout")
+    return
+  end
+  var checked = 0
+  while 1 == 1 do
+    var status = "Not checked"
+    var remote = "-"
+    var installLbl = "Unavailable"
+    if checked == 1 then
+      status = "Up to date"
+      remote = ota.version()
+      if ota.available() == 1 then
+        status = ota.channel() + " " + ota.type() + " update"
+        installLbl = str(int(ota.size() / 1024)) + " KB >"
+      end
+    end
+    var rollbackLbl = "None"
+    if ota.canRollback() == 1 then rollbackLbl = "Available >" end
+    ui.menuStart("Software Update", 1)
+    ui.menuRow("Current Version", "OS", 0, 122, 255, openos.version())
+    ui.menuRow("Status", "i", 142, 142, 147, status)
+    ui.menuRow("Check Now", "C", 0, 122, 255, ">")
+    ui.menuRow("Available Version", "V", 88, 86, 214, remote)
+    ui.menuRow("Release Notes", "N", 255, 149, 0, ">")
+    ui.menuRow("Download & Install", "U", 52, 199, 89, installLbl)
+    ui.menuRow("Update Source", "R", 142, 142, 147, ">")
+    ui.menuRow("Restore Previous", "B", 255, 59, 48, rollbackLbl)
+    var pick = ui.menuShow()
+    if pick == -1 then return end
+    if pick == 2 then
+      if wifi.connected() == 0 then ui.alert("Software Update", "Connect to Wi-Fi first") end
+      if wifi.connected() == 1 then
+        ui.alert("Software Update", "Checking signed update feed...")
+        var result = ota.check()
+        if result != -1 then checked = 1 end
+        if result == -1 then ui.alert("Update Failed", ota.error()) end
+        if result == 0 then ui.alert("Software Update", "OpenOS is up to date") end
+        if result == 1 then ui.alert(ota.name(), ota.version() + " / " + ota.channel() + " / " + ota.type()) end
+      end
+    end
+    if pick == 3 and checked == 1 then ui.alert(ota.name(), ota.version() + " / " + ota.publishedAt()) end
+    if pick == 4 then
+      if ota.available() == 1 then ui.alert(ota.name(), ota.description()) end
+      if ota.available() == 0 then ui.alert("Release Notes", "Check for updates first") end
+    end
+    if pick == 5 then
+      if ota.available() == 1 then
+        if ota.install() == 0 then ui.alert("Update Failed", ota.error()) end
+      end
+      if ota.available() == 0 then ui.alert("Software Update", "No update is ready to install") end
+    end
+    if pick == 6 then otaSourceScreen() checked = 0 end
+    if pick == 7 and ota.canRollback() == 1 then
+      if ota.rollback() == 0 then ui.alert("Restore Failed", ota.error()) end
+    end
+  end
+end
+
 def aboutScreen()
   cls()
   ui.backHeader("About Device")
@@ -358,7 +446,7 @@ def aboutScreen()
   textc(40, 110, "OS")
   textcolor(255, 255, 255)
   fontsize(2)
-  text(75, 100, "OpenOS 1.0b")
+  text(75, 100, "OpenOS " + openos.version())
   textcolor(180, 180, 200)
   text(75, 120, "Privileged (OSA)")
   # Stats card
@@ -400,6 +488,7 @@ loop
   ui.menuRow("Time & Date",          "T", 255, 149,   0, ">")
   ui.menuRow("SD Card",              "SD", 52, 199,  89, ">")
   ui.menuRow("Applications",         "A", 255, 149,   0, ">")
+  ui.menuRow("Software Update",      "U",   0, 122, 255, openos.version() + " >")
   ui.menuRow("About",                "i", 142, 142, 147, ">")
   var pick = ui.menuShow()
   if pick == -1 then exit() end
@@ -411,5 +500,6 @@ loop
   if pick == 5 then timeScreen() end
   if pick == 6 then sdcardScreen() end
   if pick == 7 then applicationsScreen() end
-  if pick == 8 then aboutScreen() end
+  if pick == 8 then otaScreen() end
+  if pick == 9 then aboutScreen() end
 end

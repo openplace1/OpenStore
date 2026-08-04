@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import tempfile
 import unittest
 from pathlib import Path
 from zipfile import ZIP_STORED, ZipFile
@@ -16,6 +17,26 @@ SPEC.loader.exec_module(build_opk)
 
 
 class OpkBuilderTests(unittest.TestCase):
+    def test_osa_discovery_hash_is_independent_of_line_endings(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            lf = root / "lf.osa"
+            crlf = root / "crlf.osa"
+            lf.write_bytes(b'#app "Test"\nloop\n  wait(1)\nend\n')
+            crlf.write_bytes(b'#app "Test"\r\nloop\r\n  wait(1)\r\nend\r\n')
+            self.assertEqual(build_opk.sha256_file(lf), build_opk.sha256_file(crlf))
+            self.assertEqual(
+                build_opk.archive_source_bytes(lf, "app.osa"),
+                build_opk.archive_source_bytes(crlf, "app.osa"),
+            )
+            package = root / "existing.opk"
+            with ZipFile(package, "w", compression=ZIP_STORED) as archive:
+                archive.writestr("manifest.json", b"{}")
+                archive.writestr("app.osa", crlf.read_bytes())
+            self.assertTrue(build_opk.existing_package_matches(
+                package, b"{}", [("app.osa", lf, lf.stat().st_size)]
+            ))
+
     def test_manifest_compatibility_levels_are_validated(self) -> None:
         base = {
             "schema": 1,

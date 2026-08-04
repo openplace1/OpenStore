@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "product": "openos",
+  "channel": "stable",
+  "target": "denky32-wroom32",
+  "partitionScheme": "openos-dual-v1",
+  "name": "OpenOS 1.1.0",
+  "version": "1.1.0",
+  "versionCode": 2,
+  "minUpdaterVersionCode": 1,
+  "releaseType": "minor",
+  "description": "Pierwsze wydanie z podpisanymi aktualizacjami firmware OTA, dwoma bezpiecznymi slotami, kontrolą integralności SHA-256 i możliwością powrotu do poprzedniej wersji.",
+  "publishedAt": "2026-08-04",
+  "firmware": "firmware-2.bin",
+  "size": 2007104,
+  "sha256": "6c08629b17fd5f213c14efc450f074766fcbe89bf12aabfa6b4b7676f6f2278e",
+  "keyId": "openos-release-2026-01",
+  "signature": "MEUCIQCRAngicyIICUGYZB2n5rOxOp1cS8y0KH09vPQF29w5vgIgFxm6vLPstjEAuTyX+D0ZNp4D+2uT/ACCRk4W2787uqc="
+}

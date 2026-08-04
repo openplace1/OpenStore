@@ -70,6 +70,13 @@ store_system_prefix=https://example.com/openstore/packages/
 host. Both values can also be changed by privileged OSA code through
 `store.setSource()` and `store.setSystemSource()`.
 
+Firmware releases are separate from OPK packages and live under `../update/`.
+The repository-root README documents the signed `info.json` schema, release-key
+handling and `tools/build_update.py` workflow. Publish the versioned firmware,
+signed manifest, rebuilt Settings OPK and rewritten catalog together. On hosts
+without atomic deploys, upload the firmware and OPK first, then publish
+`catalog.json` and `info.json` last.
+
 ## Installer limits
 
 | Limit | Value |

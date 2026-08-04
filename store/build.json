@@ -38,7 +38,7 @@
       },
       "developer": "openplace1",
       "summary": "OpenOS device and system settings.",
-      "description": "Updates Settings, including connectivity, appearance, passcode, applications, storage and device information.",
+      "description": "Updates Settings with signed firmware OTA, release notes, rollback, update-source controls and scrolling system preferences.",
       "appColor": "#8E8E93"
     },
     {

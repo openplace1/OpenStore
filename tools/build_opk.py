@@ -10,7 +10,7 @@ import re
 from pathlib import Path, PurePosixPath
 from typing import Any, NoReturn
 from urllib.parse import urlsplit
-from zipfile import ZIP_STORED, ZipFile, ZipInfo
+from zipfile import BadZipFile, ZIP_STORED, ZipFile, ZipInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -148,7 +148,43 @@ def zip_info(name: str) -> ZipInfo:
     return info
 
 
+def canonical_osa_bytes(data: bytes) -> bytes:
+    return data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+
+def archive_source_bytes(path: Path, archive_name: str) -> bytes:
+    data = path.read_bytes()
+    return canonical_osa_bytes(data) if archive_name.lower().endswith(".osa") else data
+
+
+def existing_package_matches(path: Path, manifest_bytes: bytes,
+                             files: list[tuple[str, Path, int]]) -> bool:
+    if not path.is_file():
+        return False
+    try:
+        with ZipFile(path) as archive:
+            expected_names = {"manifest.json", *(name for name, _, _ in files)}
+            if set(archive.namelist()) != expected_names:
+                return False
+            if archive.read("manifest.json") != manifest_bytes:
+                return False
+            for archive_name, source, _ in files:
+                actual = archive.read(archive_name)
+                if archive_name.lower().endswith(".osa"):
+                    actual = canonical_osa_bytes(actual)
+                if actual != archive_source_bytes(source, archive_name):
+                    return False
+    except (BadZipFile, KeyError, OSError):
+        return False
+    return True
+
+
 def sha256_file(path: Path) -> str:
+    # Git may materialize text files with CRLF on Windows. Discovery hashes OSA
+    # source in canonical LF form so an unchanged app never triggers metadata
+    # prompts merely because the builder runs on another operating system.
+    if path.suffix.lower() == ".osa":
+        return hashlib.sha256(canonical_osa_bytes(path.read_bytes())).hexdigest()
     digest = hashlib.sha256()
     with path.open("rb") as stream:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
@@ -401,7 +437,7 @@ def build_package(package: Any, seen_ids: set[str], base_url: str) -> dict[str, 
                 f"{package_id}: duplicate/case-colliding path {archive_name!r}")
         seen_paths.add(archive_name)
         source = source_path(source_name)
-        size = source.stat().st_size
+        size = len(archive_source_bytes(source, archive_name))
         require(size <= MAX_FILE_BYTES, f"{package_id}: {archive_name} exceeds 2 MB")
         require(total <= MAX_TOTAL_BYTES - size, f"{package_id}: unpacked files exceed 8 MB")
         total += size
@@ -410,7 +446,7 @@ def build_package(package: Any, seen_ids: set[str], base_url: str) -> dict[str, 
     require(manifest["entry"] in file_map,
             f"{package_id}: manifest entry {manifest['entry']!r} is not present in files")
     entry_source = source_path(file_map[manifest["entry"]])
-    entry_bytes = entry_source.read_bytes()
+    entry_bytes = archive_source_bytes(entry_source, manifest["entry"])
     if manifest["entry"].lower().endswith(".osa"):
         require(len(entry_bytes) <= MAX_OSA_SOURCE_BYTES,
                 f"{package_id}: OSA entry source exceeds 128 KB")
@@ -430,21 +466,26 @@ def build_package(package: Any, seen_ids: set[str], base_url: str) -> dict[str, 
 
     OUTPUT.mkdir(parents=True, exist_ok=True)
     output_path = OUTPUT / f"{package_id}.opk"
-    temporary = output_path.with_suffix(".opk.tmp")
-    try:
-        with ZipFile(temporary, "w", compression=ZIP_STORED,
-                     allowZip64=False) as archive:
-            archive.writestr(zip_info("manifest.json"), manifest_bytes)
-            for archive_name, source, _ in sorted(files, key=lambda item: item[0]):
-                archive.writestr(zip_info(archive_name), source.read_bytes())
-        require(temporary.stat().st_size <= MAX_PACKAGE_BYTES,
-                f"{package_id}: OPK exceeds 8 MB")
-        os.replace(temporary, output_path)
-    finally:
-        temporary.unlink(missing_ok=True)
+    if existing_package_matches(output_path, manifest_bytes, files):
+        action = "Kept"
+    else:
+        action = "Built"
+        temporary = output_path.with_suffix(".opk.tmp")
+        try:
+            with ZipFile(temporary, "w", compression=ZIP_STORED,
+                         allowZip64=False) as archive:
+                archive.writestr(zip_info("manifest.json"), manifest_bytes)
+                for archive_name, source, _ in sorted(files, key=lambda item: item[0]):
+                    archive.writestr(zip_info(archive_name),
+                                     archive_source_bytes(source, archive_name))
+            require(temporary.stat().st_size <= MAX_PACKAGE_BYTES,
+                    f"{package_id}: OPK exceeds 8 MB")
+            os.replace(temporary, output_path)
+        finally:
+            temporary.unlink(missing_ok=True)
 
     digest = sha256_file(output_path)
-    print(f"Built {output_path.relative_to(ROOT)}  sha256={digest}")
+    print(f"{action} {output_path.relative_to(ROOT)}  sha256={digest}")
     developer = package.get("developer")
     summary = package.get("summary")
     description = package.get("description")

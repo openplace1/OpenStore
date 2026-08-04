@@ -1,0 +1,5 @@
+# Release private keys must never be committed. Keep them outside this repo.
+update/*-private.pem
+update/*.key
+__pycache__/
+*.pyc
