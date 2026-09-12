@@ -10,6 +10,8 @@ includes an OPK URL, its SHA-256 digest and a monotonically increasing
 |---|---|
 | `schema` | Catalog schema, currently `1` |
 | `apps` | Array of published package entries (maximum 64 on device) |
+| `keyId` | Release key that signed the catalog (`openos-release-2026-02`) |
+| `signature` | Base64 DER ECDSA P-256 signature; must be the last field |
 | `id`, `name`, `scope` | Must agree with the OPK manifest |
 | `version`, `versionCode` | Display version and update ordering |
 | `minSdk`, `minOpenOS` | Minimum OSA SDK and OpenOS version code |
@@ -102,9 +104,17 @@ the same OPK SHA-256. It also rejects duplicate IDs, reserved namespaces,
 missing entry scripts and source files outside the repository.
 
 System packages are additionally limited to known OpenOS package IDs and the
-configured system-package prefix. OPK currently protects integrity with catalog
-SHA-256; signed catalogs/packages should be added before treating system updates
-as secure against an active network attacker.
+configured system-package prefix.
+
+The catalog is signed. `build_opk.py --key` serialises
+`{"schema":1,"apps":[...],"keyId":"..."}` compactly, signs
+`"OPENOS-CATALOG-V1\n"` followed by that exact text with the offline release
+key, and appends `,"signature":"<base64>"` as the last field. OpenOS strips
+that field, hashes the rest plus the closing brace and verifies the signature
+with the release public key compiled into the firmware before touching any
+URL, hash or ID — for the official feed and for custom `store_catalog_url`
+sources alike. Never re-serialise a signed catalog; the bytes must reach the
+device unchanged.
 
 OpenStore uses the native `store.refresh()` and indexed `store.*(i)` API. Only
 the selected item's small strings cross into OSA; the package manager releases

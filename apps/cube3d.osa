@@ -13,7 +13,7 @@ wait(100)
 var rotationX = 0
 var rotationY = 0
 var rotationZ = 0
-var fps = 20
+var fps = 40
 var mode = 2
 
 bg(7, 10, 18)
@@ -59,5 +59,7 @@ loop
   rotationY = wrap(rotationY + 0.041, 0, tau())
   rotationZ = wrap(rotationZ + 0.013, 0, tau())
 
-  fps = d3.frame(20)
+  # OpenOS 1.2 raises the 3D limiter ceiling to 40 FPS; older firmware
+  # clamps this back to 20.
+  fps = d3.frame(40)
 end

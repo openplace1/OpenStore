@@ -31,7 +31,7 @@ var speed = 0.16
 var score = 0
 var best = 0
 var gameOver = 0
-var fps = 20
+var fps = 30
 var gridZ = 0
 
 bg(5, 7, 14)
@@ -156,5 +156,5 @@ loop
     gfx.push(viewX, viewY)
   end
 
-  fps = d3.frame(20)
+  fps = d3.frame(30)
 end

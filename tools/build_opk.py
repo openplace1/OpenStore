@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
-"""Build deterministic, device-compatible OpenOS OPK packages and catalog."""
+"""Build deterministic, device-compatible OpenOS OPK packages and catalog.
+
+With --key the catalog is signed by the offline ECDSA P-256 release key (the
+same key as update/info.json); OpenOS 1.2 and later reject an unsigned or
+re-signed catalog before reading any package URL or hash.
+"""
 
 from __future__ import annotations
 
+import argparse
+import base64
 import hashlib
+import importlib
 import json
 import os
 import re
@@ -29,6 +37,14 @@ MAX_OSA_SOURCE_BYTES = 128 * 1024
 MAX_OSA_LINES = 512
 MAX_OSA_LINE_BYTES = 768
 MAX_OSAC_BYTES = 96 * 1024
+
+# Catalog signing. The device hashes "OPENOS-CATALOG-V1\n" followed by the
+# compact object {"schema":1,"apps":[...],"keyId":"..."} exactly as emitted
+# below, so the signed text must never be re-serialized after signing.
+KEY_ID = "openos-release-2026-02"
+DEFAULT_PUBLIC_KEY = ROOT / "update" / "openos-release-2026-02-public.pem"
+CATALOG_SIGNATURE_PREFIX = b"OPENOS-CATALOG-V1\n"
+CATALOG_SIGNATURE_MARKER = b',"signature":"'
 
 ID_PATTERN = re.compile(r"[a-z0-9._-]{1,48}\Z")
 COLOR_PATTERN = re.compile(r"#[0-9A-Fa-f]{6}\Z")
@@ -62,6 +78,72 @@ def compact_json(value: object) -> bytes:
 def write_text_lf(path: Path, value: str) -> None:
     with path.open("w", encoding="utf-8", newline="\n") as stream:
         stream.write(value)
+
+
+def unsigned_catalog_bytes(apps: list[dict[str, object]]) -> bytes:
+    """Compact catalog text without a trailing newline; this is what gets signed."""
+    return json.dumps({"schema": 1, "apps": apps, "keyId": KEY_ID},
+                      ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
+def signed_catalog_bytes(unsigned: bytes, signature_b64: str) -> bytes:
+    """Inserts the signature as the last field; mirrors what the device strips."""
+    require(unsigned.endswith(b"}"), "unsigned catalog must be a JSON object")
+    require(re.fullmatch(r"[A-Za-z0-9+/=]{80,120}", signature_b64) is not None,
+            "signature must be base64 of a DER P-256 signature")
+    return (unsigned[:-1] + CATALOG_SIGNATURE_MARKER +
+            signature_b64.encode("ascii") + b'"}\n')
+
+
+def split_signed_catalog(document: bytes) -> tuple[bytes, str]:
+    """Returns (signed text, base64 signature) the way PackageManager.cpp does."""
+    stripped = document.rstrip(b" \t\r\n")
+    position = stripped.rfind(CATALOG_SIGNATURE_MARKER)
+    require(position > 0, "catalog is not signed")
+    signature_start = position + len(CATALOG_SIGNATURE_MARKER)
+    signature_end = stripped.find(b'"', signature_start)
+    require(signature_end >= 0 and stripped[signature_end:] == b'"}',
+            "catalog signature field is malformed")
+    signature = stripped[signature_start:signature_end].decode("ascii")
+    return stripped[:position] + b"}", signature
+
+
+def release_tools() -> Any:
+    """build_update.py owns key loading; it needs the cryptography package."""
+    try:
+        return importlib.import_module("build_update")
+    except SystemExit as exc:
+        fail(f"catalog signing needs the cryptography package: {exc}")
+
+
+def sign_catalog(unsigned: bytes, private_key_path: Path) -> bytes:
+    tools = release_tools()
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.asymmetric import ec
+    key = tools.load_private_key(private_key_path)
+    signature = key.sign(CATALOG_SIGNATURE_PREFIX + unsigned, ec.ECDSA(hashes.SHA256()))
+    return signed_catalog_bytes(unsigned, base64.b64encode(signature).decode("ascii"))
+
+
+def verify_catalog(document: bytes, public_key_path: Path) -> dict[str, Any]:
+    tools = release_tools()
+    from cryptography.exceptions import InvalidSignature
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.asymmetric import ec
+    unsigned, signature_b64 = split_signed_catalog(document)
+    parsed = json.loads(unsigned)
+    require(isinstance(parsed, dict) and parsed.get("schema") == 1 and
+            parsed.get("keyId") == KEY_ID, "catalog schema or keyId is not accepted by OpenOS")
+    try:
+        signature = base64.b64decode(signature_b64, validate=True)
+    except ValueError as exc:
+        fail(f"invalid base64 catalog signature: {exc}")
+    key = tools.load_public_key(public_key_path)
+    try:
+        key.verify(signature, CATALOG_SIGNATURE_PREFIX + unsigned, ec.ECDSA(hashes.SHA256()))
+    except InvalidSignature:
+        fail("catalog signature verification failed")
+    return parsed
 
 
 def package_base_url(value: Any) -> str:
@@ -520,6 +602,20 @@ def build_package(package: Any, seen_ids: set[str], base_url: str) -> dict[str, 
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--key", type=Path,
+                        help="private ECDSA P-256 release key; signs the catalog")
+    parser.add_argument("--verify", action="store_true",
+                        help="verify the signature of store/catalog.json and exit")
+    parser.add_argument("--public-key", type=Path, default=DEFAULT_PUBLIC_KEY)
+    args = parser.parse_args()
+
+    catalog_path = STORE / "catalog.json"
+    if args.verify:
+        parsed = verify_catalog(catalog_path.read_bytes(), args.public_key.resolve())
+        print(f"Verified {catalog_path.relative_to(ROOT)} ({len(parsed['apps'])} apps)")
+        return
+
     build_json_path = STORE / "build.json"
     try:
         config = json.loads(build_json_path.read_text(encoding="utf-8"))
@@ -546,10 +642,16 @@ def main() -> None:
     catalog_apps = [build_package(package, seen_ids, base_url)
                     for package in config["packages"]]
     catalog_apps.sort(key=lambda item: str(item["id"]))
-    catalog_bytes = compact_json({"schema": 1, "apps": catalog_apps})
+    unsigned = unsigned_catalog_bytes(catalog_apps)
+    if args.key:
+        catalog_bytes = sign_catalog(unsigned, args.key.resolve())
+        verify_catalog(catalog_bytes, args.public_key.resolve())
+    else:
+        catalog_bytes = unsigned + b"\n"
+        print("WARNING: catalog is unsigned; OpenOS 1.2+ devices reject it. "
+              "Re-run with --key <release private key> before publishing.")
     require(len(catalog_bytes) <= MAX_CATALOG_BYTES, "catalog exceeds device 24 KB limit")
 
-    catalog_path = STORE / "catalog.json"
     temporary = catalog_path.with_suffix(".json.tmp")
     try:
         temporary.write_bytes(catalog_bytes)

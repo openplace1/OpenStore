@@ -8,9 +8,16 @@ the OpenOS firmware source.
 Run from the repository root:
 
 ```text
-python tools/build_opk.py
+python tools/build_opk.py --key /secure/outside-git/openos-release-private.pem
+python tools/build_opk.py --verify
 python -m unittest discover -s test -p "test_*.py" -v
 ```
+
+`build_opk.py` signs `store/catalog.json` with the same offline ECDSA P-256
+release key as the firmware manifest (`--key` needs the `cryptography`
+package). Without `--key` it still rebuilds the packages and writes an
+unsigned catalog for local work, but OpenOS 1.2 and later refuse to use it
+and `test_published_packages_match_catalog` fails until the file is signed.
 
 Commit and push these generated paths to `main`:
 
@@ -56,10 +63,12 @@ descriptor plus the embedded OpenOS target/version marker before signing.
 Keep the unencrypted release PEM outside Git with an OS ACL readable only by
 the release operator (and the system account used for backups/builds).
 
-This ECDSA trust applies to firmware OTA only. The current OPK catalog still
-uses an unhashed/unsigned catalog over no-CA HTTPS; its per-package SHA-256 does
-not protect privileged system apps from an active network attacker. Do not
-confuse the signed firmware feed with signed Settings/OpenStore packages.
+The same key signs the OPK catalog. The device verifies the catalog signature
+before it reads any package URL, and every OPK is then checked against the
+SHA-256 recorded in that signed catalog, so system packages (Settings,
+OpenStore, Home) are protected end to end. OPK files carry no signature of
+their own: the device installs only from the signed catalog, so a per-package
+signature would add nothing until sideloading exists.
 
 The operator normally changes `name`, `version`, monotonically increasing
 `versionCode`, `releaseType`, `description`, `publishedAt` and the versioned

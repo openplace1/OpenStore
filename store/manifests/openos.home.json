@@ -2,10 +2,10 @@
   "schema": 1,
   "id": "openos.home",
   "name": "Home",
-  "version": "1.1.0",
-  "versionCode": 2,
+  "version": "1.2.0",
+  "versionCode": 3,
   "minSdk": 1,
-  "minOpenOS": 1,
+  "minOpenOS": 3,
   "entry": "app.osa",
   "scope": "system",
   "isApp": false
