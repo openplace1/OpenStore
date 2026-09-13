@@ -2,7 +2,8 @@
 #appColor "#5856D6"
 
 # Quick controls as tiles: tap a tile to toggle it, drag the brightness bar,
-# swipe up to close.
+# swipe up to close. Brightness sits at the top so the closing swipe from the
+# bottom edge never runs through it.
 
 while touch.down() == 1 do wait(20) end
 wait(120)
@@ -41,25 +42,25 @@ def drawWifi()
   if on == 1 then sub = "On" end
   if wifi.connected() == 1 then sub = wifi.ssid() end
   fontsize(1)
-  drawTile(12, 52, "wifi", "Wi-Fi", textfit(sub, 84), on, accent)
+  drawTile(12, 132, "wifi", "Wi-Fi", textfit(sub, 84), on, accent)
 end
 
 def drawBt()
   var on = bt.enabled()
   var sub = "Off"
   if on == 1 then sub = "On" end
-  drawTile(124, 52, "bt", "Bluetooth", sub, on, accent)
+  drawTile(124, 132, "bt", "Bluetooth", sub, on, accent)
 end
 
 def drawTheme()
   var dark = theme()
   var sub = "Light"
   if dark == 1 then sub = "Dark" end
-  drawTile(12, 144, "moon", "Theme", sub, dark, purple)
+  drawTile(12, 224, "moon", "Theme", sub, dark, purple)
 end
 
 def drawSync(sub, on)
-  drawTile(124, 144, "sync", "Time", sub, on, green)
+  drawTile(124, 224, "sync", "Time", sub, on, green)
 end
 
 def syncState()
@@ -70,16 +71,16 @@ end
 def drawBrightness()
   setcolor565(theme.surface())
   smooth(1)
-  rrect(12, 236, 216, 72, 18)
+  rrect(12, 48, 216, 72, 18)
   smooth(0)
   setcolor565(theme.text())
-  ui.icon("sun", 36, 262, 24, theme.surface())
+  ui.icon("sun", 36, 74, 24, theme.surface())
   textcolor565(theme.text())
   fontsize(2)
-  textml(56, 262, "Brightness")
+  textml(56, 74, "Brightness")
   textcolor565(theme.subtext())
-  textmr(214, 262, str(int(bright * 100 / 255)) + "%")
-  ui.progress(28, 284, 184, 12, bright - 10, 245)
+  textmr(214, 74, str(int(bright * 100 / 255)) + "%")
+  ui.progress(28, 96, 184, 12, bright - 10, 245)
 end
 
 def drawAll()
@@ -97,7 +98,7 @@ end
 drawAll()
 
 loop
-  if touch.tap(12, 52, 104, 84) == 1 then
+  if touch.tap(12, 132, 104, 84) == 1 then
     if wifi.isEnabled() == 1 then
       wifi.disable()
     else
@@ -105,7 +106,7 @@ loop
     end
     drawWifi()
   end
-  if touch.tap(124, 52, 104, 84) == 1 then
+  if touch.tap(124, 132, 104, 84) == 1 then
     if bt.enabled() == 1 then
       bt.disable()
     else
@@ -113,11 +114,11 @@ loop
     end
     drawBt()
   end
-  if touch.tap(12, 144, 104, 84) == 1 then
+  if touch.tap(12, 224, 104, 84) == 1 then
     sys.theme(1 - theme())
     drawAll()
   end
-  if touch.tap(124, 144, 104, 84) == 1 then
+  if touch.tap(124, 224, 104, 84) == 1 then
     if wifi.connected() == 0 then
       drawSync("No Wi-Fi", 0)
     else
@@ -130,7 +131,7 @@ loop
     end
   end
   if touch.down() == 1 then
-    if touch.in(12, 272, 216, 36) == 1 then
+    if touch.in(12, 84, 216, 36) == 1 then
       var v = int((touch.x() - 28) * 245 / 184) + 10
       if v < 10 then v = 10 end
       if v > 255 then v = 255 end
