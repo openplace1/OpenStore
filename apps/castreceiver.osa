@@ -1,0 +1,108 @@
+#app "Cast Receiver"
+#isApp true
+#appColor "#30B0C7"
+#perm network
+
+# Shows a computer screen streamed over Wi-Fi. On the computer run
+#   python tools/cast_sender.py <device ip>
+# from the OpenStore repository. Frames arrive over a plain TCP connection as
+# RGB565 tiles (8-byte header, then 240 x rows x 2 bytes) and go straight to
+# the panel with screen.write — nothing here knows what a desktop is.
+
+while touch.down() == 1 do wait(10) end
+wait(80)
+
+if sdk.has("net") == 0 then
+  ui.alert("Update required", "Cast Receiver needs OpenOS 1.6.")
+  exit()
+end
+if wifi.connected() == 0 then
+  ui.alert("No Wi-Fi", "Connect to a network first.")
+  exit()
+end
+
+var port = 7777
+var hdr = buf.alloc(8)
+var tile = buf.alloc(240 * 16 * 2)
+if hdr < 0 or tile < 0 then
+  ui.alert("Not enough RAM", "Could not allocate the tile buffer.")
+  exit()
+end
+if net.listen(port) == 0 then
+  ui.alert("Network", "Could not open port " + str(port) + ".")
+  exit()
+end
+
+var sock = -1
+var have = 0
+var need = 0
+var tileY = 0
+var tileH = 0
+var tiles = 0
+var got = 0
+
+def drawWaiting()
+  bg565(theme.bg())
+  ui.header("Cast Receiver")
+  setcolor(48, 176, 199)
+  ui.icon("play", 120, 110, 44, theme.bg())
+  fontsize(2)
+  textcolor565(theme.text())
+  textc(120, 160, "Waiting for a sender")
+  fontsize(2)
+  textcolor(48, 176, 199)
+  textc(120, 190, wifi.ip() + ":" + str(port))
+  fontsize(1)
+  textcolor565(theme.subtext())
+  textc(120, 222, "On the computer:")
+  textc(120, 238, "python tools/cast_sender.py " + wifi.ip())
+  textc(120, 296, "Swipe up to leave")
+end
+
+drawWaiting()
+
+loop
+  if sock < 0 then
+    sock = net.accept()
+    if sock >= 0 then
+      bg(0, 0, 0)
+      have = 0
+      need = 8
+      tiles = 0
+    else
+      wait(30)
+    end
+  else
+    if net.connected(sock) == 0 then
+      net.close(sock)
+      sock = -1
+      drawWaiting()
+    else
+      if need == 8 then
+        got = net.recv(sock, hdr, have, 8 - have)
+        if got > 0 then have = have + got end
+        if have == 8 then
+          if buf.get(hdr, 0) == 67 then
+            tileY = buf.u16(hdr, 2)
+            tileH = buf.u16(hdr, 4)
+            if tileH > 16 then tileH = 16 end
+            need = 240 * tileH * 2
+            have = 0
+          else
+            have = 0
+          end
+        end
+      else
+        got = net.recv(sock, tile, have, need - have)
+        if got > 0 then have = have + got end
+        if have >= need then
+          screen.write(0, tileY, 240, tileH, tile)
+          tiles = tiles + 1
+          need = 8
+          have = 0
+        end
+      end
+      if got <= 0 then wait(1) end
+    end
+  end
+end

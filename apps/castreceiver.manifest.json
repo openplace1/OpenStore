@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "id": "openplace.castreceiver",
+  "name": "Cast Receiver",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "minSdk": 6,
+  "minOpenOS": 24,
+  "entry": "castreceiver.osa",
+  "scope": "user",
+  "isApp": true
+}

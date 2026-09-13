@@ -45,11 +45,8 @@ def drawWifi()
   drawTile(12, 132, "wifi", "Wi-Fi", textfit(sub, 84), on, accent)
 end
 
-def drawBt()
-  var on = bt.enabled()
-  var sub = "Off"
-  if on == 1 then sub = "On" end
-  drawTile(124, 132, "bt", "Bluetooth", sub, on, accent)
+def drawRestart()
+  drawTile(124, 132, "power", "Restart", "Tap to reboot", 0, accent)
 end
 
 def drawTheme()
@@ -89,7 +86,7 @@ def drawAll()
   textcolor565(theme.text())
   text(16, 12, "Control Center")
   drawWifi()
-  drawBt()
+  drawRestart()
   drawTheme()
   drawSync(syncState(), 0)
   drawBrightness()
@@ -107,12 +104,9 @@ loop
     drawWifi()
   end
   if touch.tap(124, 132, 104, 84) == 1 then
-    if bt.enabled() == 1 then
-      bt.disable()
-    else
-      bt.enable()
+    if ui.dialog("Restart OpenOS?", "Unsaved work in the current app is lost.", "Cancel", "Restart", 1) == 1 then
+      sys.reboot()
     end
-    drawBt()
   end
   if touch.tap(12, 224, 104, 84) == 1 then
     sys.theme(1 - theme())

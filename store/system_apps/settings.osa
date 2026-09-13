@@ -83,12 +83,6 @@ def wifiScreen()
   end
 end
 
-def btScreen()
-  var t = ui.toggle("Bluetooth (OpenOS)", bt.enabled())
-  if t == 1 then bt.enable() sys.notify("BT enabled") end
-  if t == 0 then bt.disable() sys.notify("BT disabled") end
-end
-
 def passcodeScreen()
   while 1 == 1 do
     var cur = crypto.decrypt(cfg.get("passcode", ""))
@@ -434,38 +428,53 @@ def otaScreen()
   end
 end
 
-def aboutScreen()
-  cls()
-  ui.backHeader("About Device")
-  # Info card
-  setcolor(40, 40, 50)
-  rrect(10, 70, 220, 80, 10)
-  setcolor(0, 122, 255)
-  rrect(20, 90, 40, 40, 8)
-  textcolor(255, 255, 255)
-  fontsize(4)
-  textc(40, 110, "OS")
-  textcolor(255, 255, 255)
+# ─── About device ──────────────────────────────────────────────────────────
+# A hero card with the OS version and a phone sketch, then four section
+# cards (Device, System, Storage, Network) that each open a one-screen list.
+
+def sizeText(bytes)
+  if bytes >= 1073741824 then return str(int(bytes / 107374182) / 10) + " GB" end
+  if bytes >= 1048576 then return str(int(bytes / 104858) / 10) + " MB" end
+  return str(int(bytes / 1024)) + " KB"
+end
+
+def infoRow(y, label, value)
   fontsize(2)
-  text(75, 100, "OpenOS " + openos.version())
-  textcolor(180, 180, 200)
-  text(75, 120, "Privileged (OSA)")
-  # Stats card
-  setcolor(40, 40, 50)
-  rrect(10, 165, 220, 110, 10)
-  textcolor(255, 255, 255)
-  fontsize(2)
-  text(20, 185, "CPU:")
-  text(20, 215, "Free RAM:")
-  text(20, 245, "Uptime:")
-  textcolor(180, 180, 200)
-  textcolor(180, 180, 200)
-  textcolor(180, 180, 200)
-  text(220 - len("240 MHz") * 6, 185, "240 MHz")
-  var ramTxt = str(int(freeram() / 1024)) + " KB"
-  text(220 - len(ramTxt) * 6, 215, ramTxt)
-  var upTxt = str(int(uptime() / 60)) + " min"
-  text(220 - len(upTxt) * 6, 245, upTxt)
+  textcolor565(theme.subtext())
+  textml(26, y, label)
+  textcolor565(theme.text())
+  textmr(214, y, textfit(value, 118))
+end
+
+def infoCard(title, rows)
+  # rows: "label=value|label=value|..." drawn on one card below the header.
+  bg565(theme.bg())
+  ui.backHeader(title)
+  var count = 1
+  var i = 0
+  while i < len(rows) do
+    if substr(rows, i, 1) == "|" then count = count + 1 end
+    i = i + 1
+  end
+  ui.card(12, 62, 216, count * 30 + 18)
+  var y = 62 + 24
+  var startAt = 0
+  i = 0
+  while i <= len(rows) do
+    var atEnd = 0
+    if i == len(rows) then atEnd = 1 end
+    if atEnd == 0 then
+      if substr(rows, i, 1) == "|" then atEnd = 1 end
+    end
+    if atEnd == 1 then
+      var entry = substr(rows, startAt, i - startAt)
+      var eq = indexOf(entry, "=")
+      infoRow(y, substr(entry, 0, eq), substr(entry, eq + 1, len(entry) - eq - 1))
+      y = y + 30
+      startAt = i + 1
+    end
+    i = i + 1
+  end
   while 1 == 1 do
     if touch.down() == 1 and ui.backTapped() == 1 then
       while touch.down() == 1 do wait(20) end
@@ -475,14 +484,154 @@ def aboutScreen()
   end
 end
 
+def sectionCard(y, icon, title, value)
+  ui.card(12, y, 216, 56)
+  setcolor(0, 122, 255)
+  ui.icon(icon, 36, y + 28, 24, theme.surface())
+  fontsize(2)
+  textcolor565(theme.text())
+  textml(58, y + 20, title)
+  textcolor565(theme.subtext())
+  fontsize(1)
+  textml(58, y + 38, textfit(value, 130))
+  setcolor565(theme.hint())
+  ui.icon("chevron", 208, y + 28, 14, theme.surface())
+end
+
+def deviceScreen()
+  var chip = sys.info("chip")
+  var cpu = str(sys.info("cpu")) + " MHz, " + str(sys.info("cores")) + " cores"
+  var rows = "Board=CYD ESP32-2432S028|Chip=" + chip + "|CPU=" + cpu
+  rows = rows + "|Flash=" + sizeText(sys.info("flash")) + "|RAM=" + sizeText(sys.info("ram"))
+  rows = rows + "|Display=" + sys.info("display") + "|Touch=" + sys.info("touch")
+  rows = rows + "|Last reset=" + sys.info("reset")
+  infoCard("Device", rows)
+end
+
+def systemScreen()
+  var up = int(uptime())
+  var upTxt = str(int(up / 3600)) + " h " + str(int(up / 60) % 60) + " min"
+  var rows = "OpenOS=" + openos.version() + " (" + str(openos.versionCode()) + ")"
+  rows = rows + "|OSA SDK=" + str(sdk.version()) + "|ESP-IDF=" + sys.info("idf")
+  rows = rows + "|Firmware image=" + sizeText(sys.info("sketch")) + " of " + sizeText(sys.info("slot"))
+  rows = rows + "|Uptime=" + upTxt + "|Free RAM=" + sizeText(freeram())
+  rows = rows + "|Largest block=" + sizeText(heap.maxBlock())
+  infoCard("System", rows)
+end
+
+def storageScreen()
+  bg565(theme.bg())
+  ui.backHeader("Storage")
+  var total = sys.info("sdtotal")
+  var used = sys.info("sdused")
+  ui.card(12, 62, 216, 104)
+  fontsize(2)
+  textcolor565(theme.text())
+  textml(26, 84, "SD card")
+  textcolor565(theme.subtext())
+  textmr(214, 84, sys.info("sdtype"))
+  if total > 0 then
+    ui.progress(26, 104, 188, 12, used, total)
+    fontsize(1)
+    textcolor565(theme.subtext())
+    textml(26, 130, sizeText(used) + " used")
+    textmr(214, 130, sizeText(total - used) + " free of " + sizeText(total))
+  else
+    fontsize(1)
+    textcolor565(theme.subtext())
+    textml(26, 110, "No card")
+  end
+  fontsize(1)
+  textcolor565(theme.hint())
+  textml(26, 152, "Apps, packages and cache live on the card")
+  while 1 == 1 do
+    if touch.down() == 1 and ui.backTapped() == 1 then
+      while touch.down() == 1 do wait(20) end
+      return
+    end
+    wait(40)
+  end
+end
+
+def networkScreen()
+  var wifiTxt = "Off"
+  if wifi.isEnabled() == 1 then wifiTxt = "On, not connected" end
+  if wifi.connected() == 1 then wifiTxt = wifi.ssid() end
+  var ip = "-"
+  var rssi = "-"
+  if wifi.connected() == 1 then
+    ip = wifi.ip()
+    rssi = str(wifi.rssi()) + " dBm"
+  end
+  var rows = "Wi-Fi=" + wifiTxt + "|IP address=" + ip + "|Signal=" + rssi
+  rows = rows + "|MAC=" + sys.info("mac")
+  infoCard("Network", rows)
+end
+
+def aboutScreen()
+  while 1 == 1 do
+    bg565(theme.bg())
+    ui.backHeader("About device")
+    ui.card(12, 60, 216, 96)
+    fontsize(4)
+    textcolor565(theme.text())
+    text(26, 74, "OpenOS")
+    fontsize(2)
+    textcolor565(theme.subtext())
+    text(26, 106, "Version " + openos.version())
+    setcolor(52, 199, 89)
+    smooth(1)
+    pill(26, 126, 58, 18)
+    smooth(0)
+    fontsize(1)
+    textcolor(255, 255, 255)
+    textc(55, 135, "STABLE")
+    # A small phone sketch on the right.
+    setcolor565(theme.text())
+    smooth(1)
+    rframe(178, 72, 34, 62, 8)
+    smooth(0)
+    setcolor(0, 122, 255)
+    rrect(183, 82, 24, 40, 3)
+    setcolor565(theme.text())
+    pill(190, 77, 10, 3)
+
+    var chipTxt = sys.info("chip")
+    var sysTxt = "OpenOS " + openos.version() + ", SDK " + str(sdk.version())
+    var sdTxt = "No card"
+    var total = sys.info("sdtotal")
+    if total > 0 then sdTxt = sizeText(sys.info("sdused")) + " of " + sizeText(total) + " used" end
+    var netTxt = "Wi-Fi off"
+    if wifi.isEnabled() == 1 then netTxt = "Not connected" end
+    if wifi.connected() == 1 then netTxt = wifi.ssid() end
+    sectionCard(166, "cube", "Device", chipTxt)
+    sectionCard(226, "gear", "System", sysTxt)
+    sectionCard(286, "folder", "Storage", sdTxt)
+
+    var pick = -1
+    while pick == -1 do
+      if touch.down() == 1 and ui.backTapped() == 1 then
+        while touch.down() == 1 do wait(20) end
+        return
+      end
+      if touch.tap(12, 166, 216, 56) == 1 then pick = 0 end
+      if touch.tap(12, 226, 216, 56) == 1 then pick = 1 end
+      if touch.tap(12, 286, 216, 34) == 1 then pick = 2 end
+      if gesture.swipeLeft() == 1 then pick = 3 end
+      wait(30)
+    end
+    if pick == 0 then deviceScreen() end
+    if pick == 1 then systemScreen() end
+    if pick == 2 then storageScreen() end
+    if pick == 3 then networkScreen() end
+  end
+end
+
 loop
   ui.menuStart("Settings")
   var wifiVal = "OFF >"
   if wifi.isEnabled() == 1 then wifiVal = "ON >" end
-  var btVal = "OFF >"
-  if bt.enabled() == 1 then btVal = "ON >" end
   ui.menuRow("Wi-Fi",                "W",   0, 122, 255, wifiVal)
-  ui.menuRow("Bluetooth",            "B",   0, 122, 255, btVal)
   ui.menuRow("Display & Brightness", "D", 142, 142, 147, ">")
   ui.menuRow("Passcode",             "P", 255,  45,  85, "OFF >")
   ui.menuRow("Wallpapers",           "W", 175,  82, 222, ">")
@@ -494,13 +643,12 @@ loop
   var pick = ui.menuShow()
   if pick == -1 then exit() end
   if pick == 0 then wifiScreen() end
-  if pick == 1 then btScreen() end
-  if pick == 2 then displayScreen() end
-  if pick == 3 then passcodeScreen() end
-  if pick == 4 then wallpapersScreen() end
-  if pick == 5 then timeScreen() end
-  if pick == 6 then sdcardScreen() end
-  if pick == 7 then applicationsScreen() end
-  if pick == 8 then otaScreen() end
-  if pick == 9 then aboutScreen() end
+  if pick == 1 then displayScreen() end
+  if pick == 2 then passcodeScreen() end
+  if pick == 3 then wallpapersScreen() end
+  if pick == 4 then timeScreen() end
+  if pick == 5 then sdcardScreen() end
+  if pick == 6 then applicationsScreen() end
+  if pick == 7 then otaScreen() end
+  if pick == 8 then aboutScreen() end
 end

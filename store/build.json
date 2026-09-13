@@ -140,6 +140,16 @@
       "summary": "Full-screen 3D scene with five orbiting shapes.",
       "description": "Five shapes orbiting on a grid, depth-sorted as one scene and rendered through a 240x40 band buffer so the whole 240x320 screen is drawn at 16-bit colour. Drag to orbit the camera, tap to switch between wireframe, solid and solid-with-edges. The reference for the OSA SDK 5 scene API.",
       "appColor": "#FF9500"
+    },
+    {
+      "manifest": "apps/castreceiver.manifest.json",
+      "files": {
+        "castreceiver.osa": "apps/castreceiver.osa"
+      },
+      "developer": "openplace1",
+      "summary": "Shows a computer screen streamed over Wi-Fi.",
+      "description": "Turns the device into a small second display: run tools/cast_sender.py from the OpenStore repository on a computer and its screen is streamed over a plain TCP connection as RGB565 tiles. Built entirely from the OSA SDK 6 building blocks: net.listen/accept/recv, byte buffers and screen.write. Needs the Network permission.",
+      "appColor": "#30B0C7"
     }
   ],
   "appsCache": {
@@ -224,6 +234,23 @@
         "minSdk": 5,
         "minOpenOS": 23,
         "appColor": "#FF9500",
+        "scope": "user",
+        "isApp": true
+      }
+    },
+    "apps/castreceiver.osa": {
+      "sha256": "13e3d3f8b9e43352412f889247b8e314fb3c70faae6f5895f120ee99aa702142",
+      "metadata": {
+        "id": "openplace.castreceiver",
+        "name": "Cast Receiver",
+        "summary": "Shows a computer screen streamed over Wi-Fi.",
+        "description": "Turns the device into a small second display: run tools/cast_sender.py from the OpenStore repository on a computer and its screen is streamed over a plain TCP connection as RGB565 tiles. Built entirely from the OSA SDK 6 building blocks: net.listen/accept/recv, byte buffers and screen.write. Needs the Network permission.",
+        "developer": "openplace1",
+        "version": "1.0.0",
+        "versionCode": 1,
+        "minSdk": 6,
+        "minOpenOS": 24,
+        "appColor": "#30B0C7",
         "scope": "user",
         "isApp": true
       }

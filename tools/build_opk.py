@@ -34,7 +34,7 @@ MAX_MANIFEST_BYTES = 8192
 MAX_ENTRIES = 64
 MAX_CATALOG_BYTES = 24 * 1024
 MAX_OSA_SOURCE_BYTES = 128 * 1024
-MAX_OSA_LINES = 512
+MAX_OSA_LINES = 768
 MAX_OSA_LINE_BYTES = 768
 MAX_OSAC_BYTES = 96 * 1024
 
@@ -536,7 +536,7 @@ def build_package(package: Any, seen_ids: set[str], base_url: str) -> dict[str, 
         if source_lines and source_lines[-1] == b"":
             source_lines.pop()
         require(len(source_lines) <= MAX_OSA_LINES,
-                f"{package_id}: OSA entry exceeds 512 lines")
+                f"{package_id}: OSA entry exceeds {MAX_OSA_LINES} lines")
         require(all(len(line) <= MAX_OSA_LINE_BYTES for line in source_lines),
                 f"{package_id}: OSA entry has a line longer than 768 bytes")
     else:

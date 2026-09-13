@@ -3,7 +3,9 @@
 
 # OpenOS home screen — fully OSA. Loaded by main.cpp into osaApp whenever the
 # device transitions to STATE_HOMESCREEN. Tap-launches via app.launch (then
-# exit()), long-press opens the context menu, drag reorders/folds icons.
+# exit()), long-press opens the context menu, a held drag reorders/folds
+# icons. Twelve tiles per page; swipe sideways to page, drag a tile to the
+# screen edge to carry it to the next page.
 
 wait(80)
 while touch.down() == 1 do wait(20) end
@@ -13,6 +15,39 @@ var dragIdx   = -1
 var dragX     = 0
 var dragY     = 0
 var pendingMv = -1
+var page      = 0
+var perPage   = 12
+var edgeAt    = -1
+
+def pageCount()
+  var n = home.appCount()
+  var p = int((n + perPage - 1) / perPage)
+  if p < 1 then p = 1 end
+  return p
+end
+
+def tileX(i)
+  return home.iconX(i - page * perPage)
+end
+
+def tileY(i)
+  return home.iconY(i - page * perPage)
+end
+
+def pageLast()
+  var n = home.appCount()
+  var last = page * perPage + perPage
+  if last > n then last = n end
+  return last
+end
+
+def gotoPage(p)
+  if p < 0 then p = 0 end
+  if p >= pageCount() then p = pageCount() - 1 end
+  if p == page then return 0 end
+  page = p
+  return 1
+end
 
 # ─── Status bar (formerly Home::drawStatusBar in C++) ──────────────────────
 # Theme-aware top strip: label, centered clock, battery indicator.
@@ -42,11 +77,11 @@ end
 
 # ─── Helpers ────────────────────────────────────────────────────────────────
 def hitTest(px, py)
-  var n = home.appCount()
-  var i = 0
-  while i < n do
-    var ix = home.iconX(i)
-    var iy = home.iconY(i)
+  var last = pageLast()
+  var i = page * perPage
+  while i < last do
+    var ix = tileX(i)
+    var iy = tileY(i)
     if px >= ix and px <= ix + 46 and py >= iy and py <= iy + 46 then return i end
     i = i + 1
   end
@@ -85,18 +120,41 @@ def drawTileAt(i, x, y)
 end
 
 def drawTile(i)
-  drawTileAt(i, home.iconX(i), home.iconY(i))
+  drawTileAt(i, tileX(i), tileY(i))
+end
+
+def drawDots()
+  var count = pageCount()
+  if count < 2 then return end
+  var dark = theme()
+  var x = 120 - (count - 1) * 7
+  var p = 0
+  while p < count do
+    if p == page then
+      if dark == 1 then setcolor(255, 255, 255) end
+      if dark == 0 then setcolor(30, 30, 34) end
+      circle(x, 292, 3)
+    else
+      if dark == 1 then setcolor(120, 120, 128) end
+      if dark == 0 then setcolor(150, 150, 156) end
+      circle(x, 292, 2)
+    end
+    x = x + 14
+    p = p + 1
+  end
 end
 
 def drawAll()
+  if page >= pageCount() then page = pageCount() - 1 end
   wallpaper.draw()
   drawStatus()
-  var n = home.appCount()
-  var i = 0
-  while i < n do
+  var last = pageLast()
+  var i = page * perPage
+  while i < last do
     if i != dragIdx then drawTile(i) end
     i = i + 1
   end
+  drawDots()
 end
 
 # ─── Context menu ───────────────────────────────────────────────────────────
@@ -229,6 +287,7 @@ def folderView(idx)
         var y = startY + row * cellH
         if tx >= x and tx <= x + 46 and ty >= y and ty <= y + 46 then
           while touch.down() == 1 do wait(20) end
+          anim.openAt(x, y, home.folderAppColor(idx, j))
           app.launch(home.folderAppPath(idx, j))
           exit()
         end
@@ -261,12 +320,15 @@ loop
     var sy = touch.y()
     var idx = hitTest(sx, sy)
     var t0 = millis()
-    var mode = 0  # 0=undecided, 1=drag, 2=menu_done
+    var mode = 0  # 0=undecided, 1=drag, 2=menu_done, 3=swipe
+    var cx = sx
+    var cy = sy
+    edgeAt = -1
 
     # Wait while finger is down — decide gesture.
     while touch.down() == 1 do
-      var cx = touch.x()
-      var cy = touch.y()
+      cx = touch.x()
+      cy = touch.y()
 
       # Long-press 1s -> open context menu
       if mode == 0 then
@@ -280,6 +342,7 @@ loop
                 folderView(idx)
               end
               if home.appIsFolder(idx) == 0 then
+                anim.openAt(tileX(idx), tileY(idx), home.appColor(idx))
                 app.launch(home.appPath(idx))
                 exit()
               end
@@ -315,21 +378,25 @@ loop
         end
       end
 
-      # Drag detection (18px from start)
+      # Movement past 18 px: a tile held for a moment starts a drag, a quick
+      # sideways move anywhere is a page swipe.
       if mode == 0 then
-        if idx >= 0 then
-          var ddx = cx - sx
-          var ddy = cy - sy
-          if ddx < 0 then ddx = 0 - ddx end
-          if ddy < 0 then ddy = 0 - ddy end
-          if ddx > 18 or ddy > 18 then
+        var ddx = cx - sx
+        var ddy = cy - sy
+        if ddx < 0 then ddx = 0 - ddx end
+        if ddy < 0 then ddy = 0 - ddy end
+        if ddx > 18 or ddy > 18 then
+          if idx >= 0 and millis() - t0 >= 260 then
             mode = 1
             dragIdx = idx
+          elif ddx > ddy then
+            mode = 3
           end
         end
       end
 
-      # Drag rendering — full redraw + dragged tile under finger.
+      # Drag rendering — full redraw + dragged tile under finger. Holding
+      # the tile at a screen edge carries it to the neighbouring page.
       if mode == 1 then
         if cx != dragX or cy != dragY then
           dragX = cx
@@ -337,14 +404,49 @@ loop
           drawAll()
           drawTileAt(idx, cx - 23, cy - 23)
         end
+        if cx < 14 or cx > 226 then
+          if edgeAt < 0 then edgeAt = millis() end
+          if millis() - edgeAt > 450 then
+            edgeAt = -1
+            var target = page + 1
+            if cx < 14 then target = page - 1 end
+            if target >= 0 and target < pageCount() then
+              home.move(idx, target * perPage)
+              home.saveOrder()
+              idx = target * perPage
+              dragIdx = idx
+              page = target
+              drawAll()
+              drawTileAt(idx, cx - 23, cy - 23)
+              var stay = 1
+              while stay == 1 do
+                if touch.down() == 0 then stay = 0 end
+                if touch.x() >= 14 and touch.x() <= 226 then stay = 0 end
+                wait(20)
+              end
+            end
+          end
+        else
+          edgeAt = -1
+        end
       end
 
       wait(15)
     end
 
     # Touch released — decide outcome.
+    if mode == 3 then
+      var moved = cx - sx
+      if moved < -40 then
+        if gotoPage(page + 1) == 1 then drawAll() end
+      end
+      if moved > 40 then
+        if gotoPage(page - 1) == 1 then drawAll() end
+      end
+    end
     if mode == 1 then
-      # Drag drop — find target tile.
+      # Drag drop — onto a tile swaps or folds, onto empty space of this page
+      # moves the tile to the page's last slot.
       var drop = hitTest(dragX, dragY)
       if drop >= 0 then
         if drop != idx then
@@ -355,6 +457,14 @@ loop
             home.swap(idx, drop)
           end
           home.saveOrder()
+        end
+      else
+        if dragY > 24 and dragY < 280 then
+          var slot = pageLast() - 1
+          if slot != idx then
+            home.move(idx, slot)
+            home.saveOrder()
+          end
         end
       end
       dragIdx = -1
@@ -389,6 +499,7 @@ loop
             drawAll()
           end
           if home.appIsFolder(idx) == 0 then
+            anim.openAt(tileX(idx), tileY(idx), home.appColor(idx))
             app.launch(home.appPath(idx))
             exit()
           end
