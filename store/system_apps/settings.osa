@@ -378,8 +378,10 @@ def otaScreen()
     ui.alert("USB Migration Required", "This device still uses the legacy single-slot partition layout")
     return
   end
-  var checked = 0
   while 1 == 1 do
+    # ota.checked() lives in the firmware, so the screen still shows the
+    # result after leaving Settings and coming back.
+    var checked = ota.checked()
     var status = "Not checked"
     var remote = "-"
     var installLbl = "Unavailable"
@@ -409,7 +411,6 @@ def otaScreen()
       if wifi.connected() == 1 then
         ui.alert("Software Update", "Checking signed update feed...")
         var result = ota.check()
-        if result != -1 then checked = 1 end
         if result == -1 then ui.alert("Update Failed", ota.error()) end
         if result == 0 then ui.alert("Software Update", "OpenOS is up to date") end
         if result == 1 then ui.alert(ota.name(), ota.version() + " / " + ota.channel() + " / " + ota.type()) end
@@ -426,7 +427,7 @@ def otaScreen()
       end
       if ota.available() == 0 then ui.alert("Software Update", "No update is ready to install") end
     end
-    if pick == 6 then otaSourceScreen() checked = 0 end
+    if pick == 6 then otaSourceScreen() end
     if pick == 7 and ota.canRollback() == 1 then
       if ota.rollback() == 0 then ui.alert("Restore Failed", ota.error()) end
     end
