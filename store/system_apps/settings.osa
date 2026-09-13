@@ -443,38 +443,10 @@ def infoRow(y, label, value)
   textcolor565(theme.subtext())
   textml(26, y, label)
   textcolor565(theme.text())
-  textmr(214, y, textfit(value, 118))
+  textmr(214, y, textfit(value, 124))
 end
 
-def infoCard(title, rows)
-  # rows: "label=value|label=value|..." drawn on one card below the header.
-  bg565(theme.bg())
-  ui.backHeader(title)
-  var count = 1
-  var i = 0
-  while i < len(rows) do
-    if substr(rows, i, 1) == "|" then count = count + 1 end
-    i = i + 1
-  end
-  ui.card(12, 62, 216, count * 30 + 18)
-  var y = 62 + 24
-  var startAt = 0
-  i = 0
-  while i <= len(rows) do
-    var atEnd = 0
-    if i == len(rows) then atEnd = 1 end
-    if atEnd == 0 then
-      if substr(rows, i, 1) == "|" then atEnd = 1 end
-    end
-    if atEnd == 1 then
-      var entry = substr(rows, startAt, i - startAt)
-      var eq = indexOf(entry, "=")
-      infoRow(y, substr(entry, 0, eq), substr(entry, eq + 1, len(entry) - eq - 1))
-      y = y + 30
-      startAt = i + 1
-    end
-    i = i + 1
-  end
+def waitBack()
   while 1 == 1 do
     if touch.down() == 1 and ui.backTapped() == 1 then
       while touch.down() == 1 do wait(20) end
@@ -482,6 +454,24 @@ def infoCard(title, rows)
     end
     wait(40)
   end
+end
+
+def infoCard(title, rows)
+  # rows: "label=value|label=value|..." on one card below the header.
+  bg565(theme.bg())
+  ui.backHeader(title)
+  var count = splitcount(rows, "|")
+  ui.card(12, 62, 216, count * 26 + 16)
+  var y = 62 + 21
+  var i = 0
+  while i < count do
+    var entry = split(rows, "|", i)
+    var eq = indexof(entry, "=")
+    infoRow(y, substr(entry, 0, eq), substr(entry, eq + 1, len(entry) - eq - 1))
+    y = y + 26
+    i = i + 1
+  end
+  waitBack()
 end
 
 def sectionCard(y, icon, title, value)
@@ -499,12 +489,11 @@ def sectionCard(y, icon, title, value)
 end
 
 def deviceScreen()
-  var chip = sys.info("chip")
-  var cpu = str(sys.info("cpu")) + " MHz, " + str(sys.info("cores")) + " cores"
-  var rows = "Board=CYD ESP32-2432S028|Chip=" + chip + "|CPU=" + cpu
+  var rows = "Board=CYD ESP32-2432S028|Chip=" + sys.info("chip")
+  rows = rows + "|CPU=" + str(sys.info("cpu")) + " MHz x " + str(sys.info("cores"))
   rows = rows + "|Flash=" + sizeText(sys.info("flash")) + "|RAM=" + sizeText(sys.info("ram"))
   rows = rows + "|Display=" + sys.info("display") + "|Touch=" + sys.info("touch")
-  rows = rows + "|Last reset=" + sys.info("reset")
+  rows = rows + "|MAC=" + sys.info("mac") + "|Last reset=" + sys.info("reset")
   infoCard("Device", rows)
 end
 
@@ -513,10 +502,20 @@ def systemScreen()
   var upTxt = str(int(up / 3600)) + " h " + str(int(up / 60) % 60) + " min"
   var rows = "OpenOS=" + openos.version() + " (" + str(openos.versionCode()) + ")"
   rows = rows + "|OSA SDK=" + str(sdk.version()) + "|ESP-IDF=" + sys.info("idf")
-  rows = rows + "|Firmware image=" + sizeText(sys.info("sketch")) + " of " + sizeText(sys.info("slot"))
-  rows = rows + "|Uptime=" + upTxt + "|Free RAM=" + sizeText(freeram())
-  rows = rows + "|Largest block=" + sizeText(heap.maxBlock())
+  rows = rows + "|Image=" + sizeText(sys.info("sketch")) + " of " + sizeText(sys.info("slot"))
+  rows = rows + "|Partitions=" + sys.info("partition") + "|Uptime=" + upTxt
+  rows = rows + "|Free RAM=" + sizeText(freeram()) + "|Largest block=" + sizeText(heap.maxBlock())
+  rows = rows + "|Reserve=" + sizeText(sys.info("reserve"))
   infoCard("System", rows)
+end
+
+def usageRow(y, label, bytes, total)
+  fontsize(2)
+  textcolor565(theme.subtext())
+  textml(26, y, label)
+  textcolor565(theme.text())
+  textmr(214, y, sizeText(bytes))
+  if total > 0 then ui.progress(26, y + 12, 188, 6, bytes, total) end
 end
 
 def storageScreen()
@@ -524,33 +523,43 @@ def storageScreen()
   ui.backHeader("Storage")
   var total = sys.info("sdtotal")
   var used = sys.info("sdused")
-  ui.card(12, 62, 216, 104)
+  ui.card(12, 62, 216, 86)
   fontsize(2)
   textcolor565(theme.text())
-  textml(26, 84, "SD card")
-  textcolor565(theme.subtext())
-  textmr(214, 84, sys.info("sdtype"))
+  textml(26, 82, "SD card (" + sys.info("sdtype") + ")")
   if total > 0 then
-    ui.progress(26, 104, 188, 12, used, total)
+    ui.progress(26, 100, 188, 12, used, total)
     fontsize(1)
     textcolor565(theme.subtext())
-    textml(26, 130, sizeText(used) + " used")
-    textmr(214, 130, sizeText(total - used) + " free of " + sizeText(total))
+    textml(26, 126, sizeText(used) + " used")
+    textmr(214, 126, sizeText(total - used) + " free of " + sizeText(total))
   else
     fontsize(1)
     textcolor565(theme.subtext())
     textml(26, 110, "No card")
+    waitBack()
+    return
   end
   fontsize(1)
   textcolor565(theme.hint())
-  textml(26, 152, "Apps, packages and cache live on the card")
-  while 1 == 1 do
-    if touch.down() == 1 and ui.backTapped() == 1 then
-      while touch.down() == 1 do wait(20) end
-      return
-    end
-    wait(40)
-  end
+  textc(120, 166, "Measuring...")
+  var packages = fs.usage("/packages") + fs.usage("/system/packages")
+  var cache = fs.usage("/system/cache")
+  var system = fs.usage("/system") - fs.usage("/system/packages") - cache
+  var appData = fs.usage("/apps")
+  var other = used - packages - cache - system - appData
+  if other < 0 then other = 0 end
+  setcolor565(theme.bg())
+  rect(0, 156, 240, 20)
+  ui.card(12, 158, 216, 150)
+  usageRow(180, "Packages", packages, used)
+  usageRow(210, "System", system, used)
+  usageRow(240, "Bytecode cache", cache, used)
+  usageRow(270, "App data", appData, used)
+  fontsize(1)
+  textcolor565(theme.hint())
+  textml(26, 296, "Other: " + sizeText(other))
+  waitBack()
 end
 
 def networkScreen()
