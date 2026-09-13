@@ -130,6 +130,16 @@
       "summary": "Widgets, dialogs and custom shapes from OSA SDK 4.",
       "description": "A tour of the immediate-mode widgets (buttons, switches, checkboxes, radios, progress, chips), the redesigned system dialog and the custom shape calls (stars, polygons, pies, per-corner rounded rectangles and animated paths) added in OSA SDK 4. A reference for app developers.",
       "appColor": "#0A84FF"
+    },
+    {
+      "manifest": "apps/shapes3d.manifest.json",
+      "files": {
+        "shapes3d.osa": "apps/shapes3d.osa"
+      },
+      "developer": "openplace1",
+      "summary": "Full-screen 3D scene with five orbiting shapes.",
+      "description": "Five shapes orbiting on a grid, depth-sorted as one scene and rendered through a 240x40 band buffer so the whole 240x320 screen is drawn at 16-bit colour. Drag to orbit the camera, tap to switch between wireframe, solid and solid-with-edges. The reference for the OSA SDK 5 scene API.",
+      "appColor": "#FF9500"
     }
   ],
   "appsCache": {
@@ -197,6 +207,23 @@
         "minSdk": 4,
         "minOpenOS": 21,
         "appColor": "#0A84FF",
+        "scope": "user",
+        "isApp": true
+      }
+    },
+    "apps/shapes3d.osa": {
+      "sha256": "2ca9f2c1d22a63c295348b54315d6c2210fd326278bfae7d45484c44ece2e624",
+      "metadata": {
+        "id": "openplace.shapes3d",
+        "name": "3D Shapes",
+        "summary": "Full-screen 3D scene with five orbiting shapes.",
+        "description": "Five shapes orbiting on a grid, depth-sorted as one scene and rendered through a 240x40 band buffer so the whole 240x320 screen is drawn at 16-bit colour. Drag to orbit the camera, tap to switch between wireframe, solid and solid-with-edges. The reference for the OSA SDK 5 scene API.",
+        "developer": "openplace1",
+        "version": "1.0.0",
+        "versionCode": 1,
+        "minSdk": 5,
+        "minOpenOS": 23,
+        "appColor": "#FF9500",
         "scope": "user",
         "isApp": true
       }

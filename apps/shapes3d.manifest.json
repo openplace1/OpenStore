@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "id": "openplace.shapes3d",
+  "name": "3D Shapes",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "minSdk": 5,
+  "minOpenOS": 23,
+  "entry": "shapes3d.osa",
+  "scope": "user",
+  "isApp": true
+}

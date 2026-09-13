@@ -1,0 +1,111 @@
+#app "3D Shapes"
+#isApp true
+#appColor "#FF9500"
+
+# Full-screen 3D at 16-bit colour. Every frame is collected into one
+# depth-sorted scene and rendered through a 240x40 band buffer (19 KB), eight
+# bands per frame, so shapes occlude each other correctly at the full 240x320.
+# Drag to orbit, tap to change the render mode, swipe up to leave.
+
+while touch.down() == 1 do wait(10) end
+wait(80)
+
+if sdk.has("d3.scene") == 0 then
+  ui.alert("Update required", "3D Shapes needs OpenOS 1.5.")
+  exit()
+end
+
+var depth = gfx.auto(240, 40, 16)
+if depth == 0 then
+  ui.alert("Not enough RAM", "Could not allocate the band buffer.")
+  exit()
+end
+
+var mode = 2
+var t = 0
+var yaw = 0.4
+var pitch = 0.35
+var lastX = 0
+var lastY = 0
+var dragging = 0
+var hudAt = -1
+
+d3.reset()
+d3.camera(120, 166, 150, 6.5)
+d3.viewport(0, 24, 240, 296)
+d3.background(color.rgb(8, 10, 20))
+d3.light(-0.4, -0.7, -0.6, 0.32)
+
+def drawScene()
+  d3.begin()
+  setcolor(40, 48, 72)
+  d3.grid(-1.6, 4, 1)
+
+  setcolor(255, 149, 0)
+  d3.at(-1.4, 0, 0.2, 0, t, 0, 1)
+  d3.sphere(0.9, 12, mode)
+
+  setcolor(52, 199, 120)
+  d3.at(1.5, 0.3, 0.5, t * 0.7, t, 0, 1)
+  d3.torus(0.8, 0.3, 12, 8, mode)
+
+  setcolor(90, 130, 255)
+  d3.at(0.2, -0.4, -1.5, 0, t * 1.3, 0, 1)
+  d3.cone(0.7, 1.5, 12, mode)
+
+  setcolor(255, 80, 120)
+  d3.at(cos(t) * 2.3, 1.5, sin(t) * 2.3, t, t * 0.5, 0, 0.6)
+  d3.box(1, 1, 1, mode)
+
+  setcolor(210, 210, 220)
+  d3.at(0.1, -1.2, 1.7, 0, t * 0.4, 0, 1)
+  d3.cylinder(0.55, 0.55, 0.8, 12, mode)
+end
+
+def drawHud()
+  # The top 24 px stay outside the 3D viewport, so this strip survives the
+  # band pushes and only needs repainting when the numbers change.
+  gfx.stash()
+  setcolor(8, 10, 20)
+  rect(0, 0, 240, 24)
+  fontsize(1)
+  textcolor(150, 160, 190)
+  text(6, 3, str(int(d3.fps())) + " fps  " + str(d3.tris()) + " tris  " + str(int(d3.renderMs())) + " ms")
+  if mode == 0 then text(6, 13, "wireframe - tap to change") end
+  if mode == 1 then text(6, 13, "solid - tap to change") end
+  if mode == 2 then text(6, 13, "solid + edges - tap to change") end
+  gfx.unstash()
+end
+
+loop
+  if touch.down() == 1 then
+    if dragging == 0 then
+      dragging = 1
+      lastX = touch.x()
+      lastY = touch.y()
+    else
+      yaw = yaw + (touch.x() - lastX) * 0.012
+      pitch = pitch + (touch.y() - lastY) * 0.012
+      if pitch > 1.4 then pitch = 1.4 end
+      if pitch < -1.4 then pitch = -1.4 end
+      lastX = touch.x()
+      lastY = touch.y()
+    end
+  else
+    dragging = 0
+  end
+  if touch.tap(0, 0, 240, 320) == 1 then
+    mode = mode + 1
+    if mode > 2 then mode = 0 end
+  end
+
+  t = t + d3.delta() * 0.8
+  d3.view(pitch, yaw, 0)
+  drawScene()
+  d3.present()
+  if hudAt < 0 or elapsed(hudAt) > 500 then
+    drawHud()
+    hudAt = millis()
+  end
+  d3.frame(30)
+end
