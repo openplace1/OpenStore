@@ -475,17 +475,17 @@ def infoCard(title, rows)
 end
 
 def sectionCard(y, icon, title, value)
-  ui.card(12, y, 216, 56)
+  ui.card(12, y, 216, 38)
   setcolor(0, 122, 255)
-  ui.icon(icon, 36, y + 28, 24, theme.surface())
+  ui.icon(icon, 32, y + 19, 20, theme.surface())
   fontsize(2)
   textcolor565(theme.text())
-  textml(58, y + 20, title)
-  textcolor565(theme.subtext())
+  textml(52, y + 19, title)
   fontsize(1)
-  textml(58, y + 38, textfit(value, 130))
+  textcolor565(theme.subtext())
+  textmr(198, y + 19, textfit(value, 96))
   setcolor565(theme.hint())
-  ui.icon("chevron", 208, y + 28, 14, theme.surface())
+  ui.icon("chevron", 212, y + 19, 12, theme.surface())
 end
 
 def deviceScreen()
@@ -523,16 +523,18 @@ def storageScreen()
   ui.backHeader("Storage")
   var total = sys.info("sdtotal")
   var used = sys.info("sdused")
-  ui.card(12, 62, 216, 86)
+  ui.card(12, 62, 216, 92)
   fontsize(2)
   textcolor565(theme.text())
-  textml(26, 82, "SD card (" + sys.info("sdtype") + ")")
+  textml(26, 82, "SD card")
+  textcolor565(theme.subtext())
+  textmr(214, 82, sys.info("sdtype") + ", " + sizeText(total))
   if total > 0 then
-    ui.progress(26, 100, 188, 12, used, total)
+    ui.progress(26, 98, 188, 12, used, total)
     fontsize(1)
     textcolor565(theme.subtext())
     textml(26, 126, sizeText(used) + " used")
-    textmr(214, 126, sizeText(total - used) + " free of " + sizeText(total))
+    textmr(214, 126, sizeText(total - used) + " free")
   else
     fontsize(1)
     textcolor565(theme.subtext())
@@ -542,7 +544,7 @@ def storageScreen()
   end
   fontsize(1)
   textcolor565(theme.hint())
-  textc(120, 166, "Measuring...")
+  textc(120, 172, "Measuring...")
   var packages = fs.usage("/packages") + fs.usage("/system/packages")
   var cache = fs.usage("/system/cache")
   var system = fs.usage("/system") - fs.usage("/system/packages") - cache
@@ -550,15 +552,15 @@ def storageScreen()
   var other = used - packages - cache - system - appData
   if other < 0 then other = 0 end
   setcolor565(theme.bg())
-  rect(0, 156, 240, 20)
-  ui.card(12, 158, 216, 150)
-  usageRow(180, "Packages", packages, used)
-  usageRow(210, "System", system, used)
-  usageRow(240, "Bytecode cache", cache, used)
-  usageRow(270, "App data", appData, used)
+  rect(0, 162, 240, 20)
+  ui.card(12, 164, 216, 148)
+  usageRow(186, "Packages", packages, used)
+  usageRow(216, "System", system, used)
+  usageRow(246, "Bytecode cache", cache, used)
+  usageRow(276, "App data", appData, used)
   fontsize(1)
   textcolor565(theme.hint())
-  textml(26, 296, "Other: " + sizeText(other))
+  textml(26, 300, "Other: " + sizeText(other))
   waitBack()
 end
 
@@ -581,41 +583,33 @@ def aboutScreen()
   while 1 == 1 do
     bg565(theme.bg())
     ui.backHeader("About device")
-    ui.card(12, 60, 216, 96)
+    ui.card(12, 60, 216, 70)
     fontsize(4)
     textcolor565(theme.text())
-    text(26, 74, "OpenOS")
+    text(26, 70, "OpenOS")
     fontsize(2)
     textcolor565(theme.subtext())
-    text(26, 106, "Version " + openos.version())
-    setcolor(52, 199, 89)
-    smooth(1)
-    pill(26, 126, 58, 18)
-    smooth(0)
-    fontsize(1)
-    textcolor(255, 255, 255)
-    textc(55, 135, "STABLE")
+    text(26, 100, "Version " + openos.version() + "  -  stable")
     # A small phone sketch on the right.
     setcolor565(theme.text())
     smooth(1)
-    rframe(178, 72, 34, 62, 8)
+    rframe(186, 68, 28, 52, 7)
     smooth(0)
     setcolor(0, 122, 255)
-    rrect(183, 82, 24, 40, 3)
+    rrect(190, 76, 20, 34, 3)
     setcolor565(theme.text())
-    pill(190, 77, 10, 3)
+    pill(196, 72, 8, 2)
 
-    var chipTxt = sys.info("chip")
-    var sysTxt = "OpenOS " + openos.version() + ", SDK " + str(sdk.version())
     var sdTxt = "No card"
     var total = sys.info("sdtotal")
-    if total > 0 then sdTxt = sizeText(sys.info("sdused")) + " of " + sizeText(total) + " used" end
+    if total > 0 then sdTxt = sizeText(sys.info("sdused")) + " of " + sizeText(total) end
     var netTxt = "Wi-Fi off"
     if wifi.isEnabled() == 1 then netTxt = "Not connected" end
     if wifi.connected() == 1 then netTxt = wifi.ssid() end
-    sectionCard(166, "cube", "Device", chipTxt)
-    sectionCard(226, "gear", "System", sysTxt)
-    sectionCard(286, "folder", "Storage", sdTxt)
+    sectionCard(140, "cube", "Device", sys.info("chip"))
+    sectionCard(184, "gear", "System", "OpenOS " + openos.version())
+    sectionCard(228, "folder", "Storage", sdTxt)
+    sectionCard(272, "wifi", "Network", netTxt)
 
     var pick = -1
     while pick == -1 do
@@ -623,10 +617,10 @@ def aboutScreen()
         while touch.down() == 1 do wait(20) end
         return
       end
-      if touch.tap(12, 166, 216, 56) == 1 then pick = 0 end
-      if touch.tap(12, 226, 216, 56) == 1 then pick = 1 end
-      if touch.tap(12, 286, 216, 34) == 1 then pick = 2 end
-      if gesture.swipeLeft() == 1 then pick = 3 end
+      if touch.tap(12, 140, 216, 38) == 1 then pick = 0 end
+      if touch.tap(12, 184, 216, 38) == 1 then pick = 1 end
+      if touch.tap(12, 228, 216, 38) == 1 then pick = 2 end
+      if touch.tap(12, 272, 216, 38) == 1 then pick = 3 end
       wait(30)
     end
     if pick == 0 then deviceScreen() end
