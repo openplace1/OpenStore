@@ -7,7 +7,8 @@
 #
 # Full screen at 16-bit colour: the road and both cubes go into one scene
 # per frame and d3.present renders it through a 240x40 band buffer. The
-# score strip at the top stays outside the 3D viewport.
+# score strip at the top and the lane buttons at the bottom stay outside the
+# 3D viewport, so they are drawn once and survive the band pushes.
 
 while touch.down() == 1 do
   wait(10)
@@ -20,6 +21,8 @@ if sdk.has("d3.scene") == 0 then
 end
 
 var hudH = 28
+var barH = 52
+var barY = 320 - barH
 var playerLane = 0
 var playerX = 0
 var obstacleLane = 0
@@ -41,8 +44,8 @@ if spriteDepth == 0 then
 end
 
 d3.reset()
-d3.camera(120, hudH + 150, 138, 5)
-d3.viewport(0, hudH, 240, 320 - hudH)
+d3.camera(120, hudH + 128, 138, 5)
+d3.viewport(0, hudH, 240, 320 - hudH - barH)
 d3.background(color.rgb(18, 24, 42))
 d3.light(-0.3, -0.7, -0.65, 0.34)
 
@@ -73,6 +76,25 @@ def drawHud()
   textr(232, 6, "BEST " + str(best))
   gfx.unstash()
   shownScore = score
+end
+
+def drawButtons()
+  gfx.stash()
+  setcolor(5, 7, 14)
+  rect(0, barY, 240, barH)
+  setcolor(25, 35, 58)
+  smooth(1)
+  rrect(14, barY + 8, 100, 38, 12)
+  rrect(126, barY + 8, 100, 38, 12)
+  smooth(0)
+  setcolor(220, 230, 245)
+  ui.icon("back", 64, barY + 27, 20, color.rgb(25, 35, 58))
+  path.begin()
+  path.to(170, barY + 19)
+  path.to(180, barY + 27)
+  path.to(170, barY + 35)
+  path.stroke(2, 0)
+  gfx.unstash()
 end
 
 def drawScene()
@@ -109,6 +131,7 @@ end
 
 newObstacle()
 drawHud()
+drawButtons()
 
 loop
   if gameOver == 0 then

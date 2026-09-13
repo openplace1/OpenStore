@@ -178,15 +178,15 @@
       }
     },
     "apps/lane_runner3d.osa": {
-      "sha256": "a02b95bc819cb347b288ef0a8710dfc76f467295c0f37a5fe2285c61780d1e20",
+      "sha256": "75bf18bcdd38886e771637cc8112804b5b23c0a6c2d4b4f41539f08690ee188d",
       "metadata": {
         "id": "openplace.lanerunner3d",
         "name": "Lane Runner 3D",
         "summary": "Dodge the red cube on a full-screen 3D road.",
         "description": "A lightweight three-lane 3D runner. Tap the left or right side of the screen to change lane, avoid incoming cubes and survive as the speed increases.",
         "developer": "openplace1",
-        "version": "1.2.0",
-        "versionCode": 3,
+        "version": "1.2.1",
+        "versionCode": 4,
         "minSdk": 5,
         "minOpenOS": 23,
         "appColor": "#FF9F0A",
