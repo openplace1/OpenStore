@@ -2,7 +2,11 @@
 #isApp true
 #appColor "#34C759"
 
-# One-player Pong. Move the paddle by touching or dragging inside the field.
+# One-player Pong on the whole screen. Move the paddle by touching or
+# dragging anywhere on the field.
+#
+# Full screen at 16-bit colour from a 240x64 band sprite: the field is drawn
+# five times per frame with gfx.origin shifted, each band pushed in turn.
 
 while touch.down() == 1 do
   wait(10)
@@ -14,82 +18,114 @@ if sdk.version() < 2 then
   exit()
 end
 
-var fieldX = 40
-var fieldY = 55
-var fieldW = 160
-var fieldH = 220
-var paddleW = 46
-var paddleH = 7
-var paddleX = 57
-var paddleY = 197
-var ballX = 80
-var ballY = 125
-var ballR = 4
-var ballVX = 2.2
-var ballVY = -2.7
+var fieldW = 240
+var fieldH = 320
+var topY = 36
+var bandH = 64
+var paddleW = 62
+var paddleH = 8
+var paddleX = 89
+var paddleY = 292
+var ballX = 120
+var ballY = 170
+var ballR = 5
+var ballVX = 3.2
+var ballVY = -3.8
 var score = 0
 var best = 0
 var gameOver = 0
 var fps = 30
-var dashY = 43
-var offsetX = 0
-var offsetY = 0
+var dashY = 0
+var band = 0
+var bandY = 0
 
-bg(5, 9, 18)
-var spriteDepth = gfx.auto(fieldW, fieldH, 8)
+var spriteDepth = gfx.auto(fieldW, bandH, 16)
 if spriteDepth == 0 then
-  offsetX = fieldX
-  offsetY = fieldY
+  ui.alert("Not enough RAM", "Could not allocate the band buffer.")
+  exit()
 end
 
 def resetGame()
-  paddleX = 57
-  ballX = 80
-  ballY = 125
-  ballVY = -2.7
+  paddleX = 89
+  ballX = 120
+  ballY = 170
+  ballVY = -3.8
   if random(0, 2) == 0 then
-    ballVX = -2.2
+    ballVX = -3.2
   else
-    ballVX = 2.2
+    ballVX = 3.2
   end
   score = 0
   gameOver = 0
 end
 
-loop
+def drawField()
   bg(5, 9, 18)
+  setcolor(18, 31, 52)
+  rect(0, topY, fieldW, fieldH - topY)
+  setcolor(45, 68, 98)
+  rframe(1, topY + 1, fieldW - 2, fieldH - topY - 2, 10)
 
+  dashY = topY + 12
+  setcolor(40, 58, 80)
+  while dashY < fieldH - 12 do
+    rect(117, dashY, 6, 14)
+    dashY = dashY + 26
+  end
+
+  textcolor(235, 245, 255)
+  fontsize(2)
+  text(10, 9, "PONG  " + str(score))
+  textcolor(140, 165, 195)
+  textr(230, 9, "BEST " + str(best))
+
+  setcolor(52, 199, 89)
+  rrect(paddleX, paddleY, paddleW, paddleH, 4)
+  setcolor(255, 214, 64)
+  circle(round(ballX), round(ballY), ballR)
+
+  if gameOver == 1 then
+    setcolor(10, 17, 30)
+    rrect(40, 118, 160, 76, 14)
+    textcolor(255, 105, 97)
+    fontsize(4)
+    textc(120, 146, "GAME OVER")
+    textcolor(220, 230, 245)
+    fontsize(1)
+    textc(120, 176, "Tap to restart")
+  end
+end
+
+loop
   if gameOver == 0 then
     if touch.down() == 1 then
-      if touch.in(fieldX, fieldY, fieldW, fieldH) == 1 then
-        paddleX = touch.x() - fieldX - paddleW / 2
-        paddleX = clamp(paddleX, 2, fieldW - paddleW - 2)
-      end
+      paddleX = touch.x() - paddleW / 2
+      paddleX = clamp(paddleX, 3, fieldW - paddleW - 3)
     end
 
     ballX = ballX + ballVX
     ballY = ballY + ballVY
 
-    if ballX - ballR <= 2 then
-      ballX = 2 + ballR
+    if ballX - ballR <= 3 then
+      ballX = 3 + ballR
       ballVX = abs(ballVX)
     end
-    if ballX + ballR >= fieldW - 2 then
-      ballX = fieldW - 2 - ballR
+    if ballX + ballR >= fieldW - 3 then
+      ballX = fieldW - 3 - ballR
       ballVX = -abs(ballVX)
     end
-    if ballY - ballR <= 38 then
-      ballY = 38 + ballR
+    if ballY - ballR <= topY + 3 then
+      ballY = topY + 3 + ballR
       ballVY = abs(ballVY)
     end
 
     if ballVY > 0 and ballY + ballR >= paddleY then
-      if ballY + ballR <= paddleY + paddleH + 4 then
+      if ballY + ballR <= paddleY + paddleH + 6 then
         if ballX >= paddleX - ballR and ballX <= paddleX + paddleW + ballR then
           ballY = paddleY - ballR
-          ballVY = -abs(ballVY) - 0.06
-          ballVX = ballVX + (ballX - paddleX - paddleW / 2) * 0.035
-          ballVX = clamp(ballVX, -4.2, 4.2)
+          ballVY = -abs(ballVY) - 0.08
+          ballVX = ballVX + (ballX - paddleX - paddleW / 2) * 0.05
+          ballVX = clamp(ballVX, -6, 6)
           score = score + 1
           if score > best then
             best = score
@@ -102,47 +138,18 @@ loop
       gameOver = 1
     end
   else
-    if touch.tap(fieldX, fieldY, fieldW, fieldH) == 1 then
+    if touch.tap(0, 0, fieldW, fieldH) == 1 then
       resetGame()
     end
   end
 
-  setcolor(18, 31, 52)
-  rect(offsetX, offsetY, fieldW, fieldH)
-  setcolor(45, 68, 98)
-  rframe(offsetX + 1, offsetY + 1, fieldW - 2, fieldH - 2, 8)
-
-  dashY = 48
-  setcolor(40, 58, 80)
-  while dashY < 188 do
-    rect(offsetX + 78, offsetY + dashY, 4, 10)
-    dashY = dashY + 18
-  end
-
-  textcolor(235, 245, 255)
-  fontsize(2)
-  text(offsetX + 7, offsetY + 7, "PONG  " + str(score))
-  textcolor(140, 165, 195)
-  text(offsetX + 104, offsetY + 7, "BEST " + str(best))
-
-  setcolor(52, 199, 89)
-  rrect(offsetX + paddleX, offsetY + paddleY, paddleW, paddleH, 3)
-  setcolor(255, 214, 64)
-  circle(offsetX + round(ballX), offsetY + round(ballY), ballR)
-
-  if gameOver == 1 then
-    setcolor(10, 17, 30)
-    rrect(offsetX + 18, offsetY + 78, 124, 62, 10)
-    textcolor(255, 105, 97)
-    fontsize(2)
-    text(offsetX + 45, offsetY + 88, "GAME OVER")
-    textcolor(220, 230, 245)
-    fontsize(1)
-    text(offsetX + 41, offsetY + 116, "Tap to restart")
-  end
-
-  if spriteDepth > 0 then
-    gfx.push(fieldX, fieldY)
+  band = 0
+  while band < 5 do
+    bandY = band * bandH
+    gfx.origin(0, 0 - bandY)
+    drawField()
+    gfx.push(0, bandY)
+    band = band + 1
   end
 
   fps = perf.frame(30)
