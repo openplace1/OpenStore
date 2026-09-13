@@ -4,16 +4,16 @@
   "channel": "stable",
   "target": "denky32-wroom32",
   "partitionScheme": "openos-dual-v1",
-  "name": "OpenOS 1.2.11",
-  "version": "1.2.11",
-  "versionCode": 14,
+  "name": "OpenOS 1.2.12",
+  "version": "1.2.12",
+  "versionCode": 15,
   "minUpdaterVersionCode": 1,
   "releaseType": "patch",
-  "description": "Bufor na pobierany manifest i katalog jest rezerwowany zanim blok pamieci trafi do mbedTLS. Wczesniej tekst ladowal w srodku tego obszaru i po zamknieciu sesji zostawial w nim dziure, przez co kolejne pobranie mialo juz tylko 35 KB ciaglej pamieci i nie miescilo dwoch buforow TLS - to blokowalo pobranie obrazu firmware.",
+  "description": "Wydanie sprawdzajace pelna sciezke aktualizacji przez siec na urzadzeniu. Poza dokumentacja gospodarki pamiecia na plytce bez PSRAM nie zmienia dzialania wzgledem 1.2.11.",
   "publishedAt": "2026-09-13",
-  "firmware": "firmware-14.bin",
+  "firmware": "firmware-15.bin",
   "size": 1982896,
-  "sha256": "b621bb2befcc8878c0820741074599871725275e6ce5939f3d32f8bbf813a08e",
+  "sha256": "b05c630daf273b774e4bb32372f2351c561e4b56800e8e63a4490a6bd56d4290",
   "keyId": "openos-release-2026-02",
-  "signature": "MEUCICj9fV11NzraPo6z4Vo4SwUPCFheMtqkqgZ2bo9VH+hRAiEAzwc+uv2epzr2P1IR2ePy3PVKk2F8dyBbG6CNr2XC8u0="
+  "signature": "MEUCIH1WZa3qY3LxID1iklRq4QRGG4/Yl1x0fIrmFMnusx6bAiEAse37yIWYb8GoH3y4LUyagOFply3sp1R9e8EtNjMkIOA="
 }
