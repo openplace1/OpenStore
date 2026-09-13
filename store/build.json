@@ -120,6 +120,16 @@
       "summary": "One-player Pong with touch paddle controls.",
       "description": "A fast one-player Pong game designed for the OpenOS touchscreen. Drag the paddle, keep the ball in play and beat your best score.",
       "appColor": "#34C759"
+    },
+    {
+      "manifest": "apps/uikit.manifest.json",
+      "files": {
+        "uikit.osa": "apps/uikit.osa"
+      },
+      "developer": "openplace1",
+      "summary": "Widgets, dialogs and custom shapes from OSA SDK 4.",
+      "description": "A tour of the immediate-mode widgets (buttons, switches, checkboxes, radios, progress, chips), the redesigned system dialog and the custom shape calls (stars, polygons, pies, per-corner rounded rectangles and animated paths) added in OSA SDK 4. A reference for app developers.",
+      "appColor": "#0A84FF"
     }
   ],
   "appsCache": {
@@ -170,6 +180,23 @@
         "minSdk": 2,
         "minOpenOS": 1,
         "appColor": "#FF9F0A",
+        "scope": "user",
+        "isApp": true
+      }
+    },
+    "apps/uikit.osa": {
+      "sha256": "7d360588782ac30fb5eaa1cb0ee78f99d91bdfb006f34307be91da31b8700407",
+      "metadata": {
+        "id": "openplace.uikit",
+        "name": "UI Kit",
+        "summary": "Widgets, dialogs and custom shapes from OSA SDK 4.",
+        "description": "A tour of the immediate-mode widgets (buttons, switches, checkboxes, radios, progress, chips), the redesigned system dialog and the custom shape calls (stars, polygons, pies, per-corner rounded rectangles and animated paths) added in OSA SDK 4. A reference for app developers.",
+        "developer": "openplace1",
+        "version": "1.0.0",
+        "versionCode": 1,
+        "minSdk": 4,
+        "minOpenOS": 21,
+        "appColor": "#0A84FF",
         "scope": "user",
         "isApp": true
       }

@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "id": "openplace.uikit",
+  "name": "UI Kit",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "minSdk": 4,
+  "minOpenOS": 21,
+  "entry": "uikit.osa",
+  "scope": "user",
+  "isApp": true
+}

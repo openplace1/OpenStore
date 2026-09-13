@@ -1,0 +1,204 @@
+#app "UI Kit"
+#isApp true
+#appColor "#0A84FF"
+
+# A tour of the immediate-mode widgets, the system dialog and the custom
+# shape calls added in OSA SDK 4. Tap a control to change it, tap the tabs
+# to switch pages, swipe up to leave.
+
+while touch.down() == 1 do
+  wait(10)
+end
+wait(80)
+
+if sdk.version() < 4 then
+  ui.alert("Update required", "UI Kit needs OSA SDK 4.")
+  exit()
+end
+
+var page = 0
+var notify = 1
+var remember = 0
+var size = 1
+var progress = 0
+var chip = 0
+var angle = 0
+var lastTick = millis()
+var tabW = 0
+
+def drawTabs()
+  tabW = ui.chip(12, 48, "Widgets", page == 0)
+  ui.chip(12 + tabW + 8, 48, "Shapes", page == 1)
+end
+
+def drawRadios()
+  ui.radio(96, 178, 11, size == 0, "S", theme.bg())
+  ui.radio(146, 178, 11, size == 1, "M", theme.bg())
+  ui.radio(196, 178, 11, size == 2, "L", theme.bg())
+end
+
+def drawChips()
+  var x = 28
+  x = x + ui.chip(x, 222, "All", chip == 0) + 8
+  x = x + ui.chip(x, 222, "Games", chip == 1) + 8
+  ui.chip(x, 222, "Tools", chip == 2)
+end
+
+def drawWidgets()
+  bg565(theme.bg())
+  ui.header("UI Kit")
+  drawTabs()
+
+  ui.card(12, 84, 216, 80)
+  fontsize(2)
+  textcolor565(theme.text())
+  textml(28, 106, "Notifications")
+  ui.switch(166, 92, notify)
+  ui.checkbox(28, 132, 22, remember, "Remember me")
+
+  textcolor565(theme.subtext())
+  textml(28, 178, "Size")
+  drawRadios()
+
+  ui.progress(28, 200, 184, 12, progress, 100)
+  drawChips()
+
+  ui.button(20, 264, 96, 40, "Continue", 0)
+  ui.button(124, 264, 96, 40, "Delete", 2)
+end
+
+def drawShapesStatic()
+  bg565(theme.bg())
+  ui.header("UI Kit")
+  drawTabs()
+
+  smooth(1)
+  setcolor(255, 204, 0)
+  star(52, 122, 5, 30, 13)
+  setcolor(94, 92, 230)
+  ngon(128, 122, 6, 28)
+  setcolor(52, 199, 89)
+  pie(198, 122, 28, 0, 120)
+  setcolor(255, 149, 0)
+  pie(198, 122, 28, 120, 250)
+  setcolor(255, 59, 48)
+  pie(198, 122, 28, 250, 360)
+
+  # A tab shape: only the top corners are rounded.
+  setcolor565(theme.surface())
+  rrect4(20, 176, 90, 44, 14, 14, 0, 0)
+  setcolor(0, 122, 255)
+  pill(124, 184, 96, 28)
+  fontsize(2)
+  textcolor(255, 255, 255)
+  textc(172, 198, "pill")
+  textcolor565(theme.text())
+  textc(65, 198, "rrect4")
+
+  setcolor(0, 122, 255)
+  sframe(52, 264, 8, 30, 20, 0, 2)
+  setcolor(175, 82, 222)
+  nframe(128, 264, 3, 28, 0, 3)
+  smooth(0)
+end
+
+def drawShip()
+  # Rebuilt every frame from the current angle so rounding never drifts.
+  path.begin()
+  path.to(0, -22)
+  path.to(16, 18)
+  path.to(0, 9)
+  path.to(-16, 18)
+  path.rotate(0, 0, angle)
+  path.move(198, 264)
+  setcolor565(theme.bg())
+  circle(198, 264, 26)
+  setcolor(255, 149, 0)
+  path.fill()
+  setcolor565(theme.text())
+  path.stroke(1)
+end
+
+drawWidgets()
+
+loop
+  if touch.tap(12, 48, tabW, 28) == 1 then
+    if page != 0 then
+      page = 0
+      drawWidgets()
+    end
+  end
+  if touch.tap(12 + tabW + 8, 48, 80, 28) == 1 then
+    if page != 1 then
+      page = 1
+      drawShapesStatic()
+      drawShip()
+    end
+  end
+
+  if page == 0 then
+    if touch.tap(150, 84, 78, 44) == 1 then
+      notify = 1 - notify
+      ui.switch(166, 92, notify)
+    end
+    if touch.tap(20, 128, 180, 32) == 1 then
+      remember = 1 - remember
+      ui.checkbox(28, 132, 22, remember, "Remember me")
+    end
+    if touch.tap(80, 162, 46, 32) == 1 then
+      size = 0
+      drawRadios()
+    end
+    if touch.tap(130, 162, 46, 32) == 1 then
+      size = 1
+      drawRadios()
+    end
+    if touch.tap(180, 162, 46, 32) == 1 then
+      size = 2
+      drawRadios()
+    end
+    if touch.tap(20, 216, 200, 40) == 1 then
+      var tx = touch.endX()
+      if tx < 78 then
+        chip = 0
+      elif tx < 150 then
+        chip = 1
+      else
+        chip = 2
+      end
+      drawChips()
+    end
+    if touch.tap(20, 264, 96, 40) == 1 then
+      ui.button(20, 264, 96, 40, "Continue", 0, 1)
+      if confirm("Continue?", "This dialog uses the standard OK and Cancel buttons.") == 1 then
+        ui.alert("Done", "You tapped OK.")
+      end
+      drawWidgets()
+    end
+    if touch.tap(124, 264, 96, 40) == 1 then
+      ui.button(124, 264, 96, 40, "Delete", 2, 1)
+      if ui.dialog("Delete this item?", "It will be removed from your device and cannot be recovered.", "Cancel", "Delete", 1) == 1 then
+        ui.alert("Deleted", "The item is gone.")
+      end
+      drawWidgets()
+    end
+    if elapsed(lastTick) > 120 then
+      lastTick = millis()
+      progress = progress + 2
+      if progress > 100 then
+        progress = 0
+      end
+      ui.progress(28, 200, 184, 12, progress, 100)
+    end
+    wait(20)
+  end
+
+  if page == 1 then
+    angle = angle + 4
+    if angle >= 360 then
+      angle = angle - 360
+    end
+    drawShip()
+    wait(30)
+  end
+end
