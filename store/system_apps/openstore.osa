@@ -102,8 +102,20 @@ def drawScrollBar(top, viewport, content)
   rrect(234, top + 4 + pos, 5, thumb, 3)
 end
 def drawTabs()
-  # Floating tab bar; the list scrolls underneath it.
-  ui.tabbar("grid:Apps|gear:System", tab)
+  setcolor565(theme.header())
+  rect(0, 282, 240, 38)
+  setcolor565(lineColor)
+  line(0, 282, 240, 282)
+  fontsize(1)
+  if tab == 0 then textcolor(0, 122, 255) end
+  if tab != 0 then textcolor565(subColor) end
+  textc(60, 300, "Apps")
+  if tab == 1 then textcolor(0, 122, 255) end
+  if tab != 1 then textcolor565(subColor) end
+  textc(180, 300, "System Apps")
+  setcolor(0, 122, 255)
+  if tab == 0 then rrect(22, 315, 76, 3, 2) end
+  if tab == 1 then rrect(142, 315, 76, 3, 2) end
 end
 def drawUpdateAll()
   var available = 0
@@ -144,10 +156,10 @@ def drawCard(item, y, clipTop, clipBottom)
 end
 def drawListLayer(clipTop, clipBottom)
   setcolor565(bgColor)
-  rect(0, 40, 240, 280)
+  rect(0, 40, 240, 242)
   var shown = store.visibleCount(tab)
   var content = max(0, shown * 140 - 10)
-  maxScroll = max(0, content - 204)
+  maxScroll = max(0, content - 236)
   if scrollY > maxScroll then
     scrollY = maxScroll
   end
@@ -164,26 +176,26 @@ def drawListLayer(clipTop, clipBottom)
     if tab == 0 then textc(120, 150, "No apps available") end
     if tab == 1 then textc(120, 150, "No system updates available") end
   end
-  drawScrollBar(40, 206, max(content, 206))
+  drawScrollBar(40, 242, max(content, 242))
 end
 def drawList()
   if smooth == 1 then
     var shown = store.visibleCount(tab)
     var content = max(0, shown * 140 - 10)
-    maxScroll = max(0, content - 204)
+    maxScroll = max(0, content - 236)
     if scrollY > maxScroll then scrollY = maxScroll end
     var first = int(scrollY / 140)
     var slot = first
     var slotY = 46 + first * 140 - scrollY
     var firstY = slotY
     gfx.unstash()
-    while slotY < 320 do
+    while slotY < 282 do
       gfx.origin(0, 0 - slotY)
       setcolor565(bgColor)
       rect(0, slotY, 240, 140)
       var item = store.visibleItem(tab, slot)
       if item >= 0 then drawCard(item, slotY, slotY, slotY + 140) end
-      gfx.pushClip(0, slotY, 0, 40, 240, 280)
+      gfx.pushClip(0, slotY, 0, 40, 240, 242)
       slot = slot + 1
       slotY = slotY + 140
     end
@@ -198,9 +210,9 @@ def drawList()
       if tab == 0 then textc(120, 150, "No apps available") end
       if tab == 1 then textc(120, 150, "No system updates available") end
     end
-    drawScrollBar(40, 206, max(content, 206))
+    drawScrollBar(40, 242, max(content, 242))
   else
-    drawListLayer(40, 320)
+    drawListLayer(40, 282)
   end
   drawTabs()
   ui.header("OpenStore")
@@ -385,7 +397,7 @@ def openDetail(item)
   redraw = 1
 end
 def tapList(px, py)
-  if py >= 250 and px >= 12 and px < 228 then
+  if py >= 282 then
     if tab == 0 then appsScroll = scrollY end
     if tab == 1 then systemScroll = scrollY end
     if px < 120 then tab = 0 end
