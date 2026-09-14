@@ -3,13 +3,14 @@
 
 # Quick controls as tiles: tap a tile to toggle it, drag the brightness bar,
 # swipe up to close. Brightness sits at the top so the closing swipe from the
-# bottom edge never runs through it.
+# bottom edge never runs through it. The wide tile at the bottom keeps the
+# last notifications; tap it for the full list.
 
 while touch.down() == 1 do wait(20) end
 wait(120)
 
 var bright = getbright()
-var accent = color.rgb(0, 122, 255)
+var accent = theme.accent()
 var purple = color.rgb(88, 86, 214)
 var green = color.rgb(52, 199, 89)
 
@@ -18,7 +19,7 @@ def drawTile(x, y, icon, label, sub, on, fillOn)
   if on == 1 then fill = fillOn end
   setcolor565(fill)
   smooth(1)
-  rrect(x, y, 104, 84, 18)
+  rrect(x, y, 104, 62, 16)
   smooth(0)
   if on == 1 then
     setcolor(255, 255, 255)
@@ -27,13 +28,13 @@ def drawTile(x, y, icon, label, sub, on, fillOn)
     setcolor565(theme.text())
     textcolor565(theme.text())
   end
-  ui.icon(icon, x + 26, y + 26, 26, fill)
+  ui.icon(icon, x + 22, y + 24, 22, fill)
   fontsize(2)
-  textml(x + 12, y + 56, label)
+  textml(x + 42, y + 18, label)
   if on == 1 then textcolor(225, 232, 255) end
   if on == 0 then textcolor565(theme.subtext()) end
   fontsize(1)
-  textml(x + 12, y + 72, sub)
+  textml(x + 42, y + 38, textfit(sub, 56))
 end
 
 def drawWifi()
@@ -42,22 +43,22 @@ def drawWifi()
   if on == 1 then sub = "On" end
   if wifi.connected() == 1 then sub = wifi.ssid() end
   fontsize(1)
-  drawTile(12, 132, "wifi", "Wi-Fi", textfit(sub, 84), on, accent)
+  drawTile(12, 112, "wifi", "Wi-Fi", sub, on, accent)
 end
 
 def drawRestart()
-  drawTile(124, 132, "power", "Restart", "Tap to reboot", 0, accent)
+  drawTile(124, 112, "power", "Restart", "Tap to reboot", 0, accent)
 end
 
 def drawTheme()
   var dark = theme()
   var sub = "Light"
   if dark == 1 then sub = "Dark" end
-  drawTile(12, 224, "moon", "Theme", sub, dark, purple)
+  drawTile(12, 180, "moon", "Theme", sub, dark, purple)
 end
 
 def drawSync(sub, on)
-  drawTile(124, 224, "sync", "Time", sub, on, green)
+  drawTile(124, 180, "sync", "Time", sub, on, green)
 end
 
 def syncState()
@@ -65,19 +66,83 @@ def syncState()
   return "Tap to sync"
 end
 
+def drawNotifications()
+  setcolor565(theme.surface())
+  smooth(1)
+  rrect(12, 248, 216, 60, 16)
+  smooth(0)
+  setcolor565(theme.text())
+  ui.icon("list", 34, 278, 22, theme.surface())
+  fontsize(2)
+  textcolor565(theme.text())
+  textml(54, 268, "Notifications")
+  fontsize(1)
+  textcolor565(theme.subtext())
+  var n = notify.count()
+  if n == 0 then
+    textml(54, 288, "Nothing yet")
+  else
+    textml(54, 288, textfit(notify.text(0), 150))
+    textmr(214, 268, str(n))
+  end
+end
+
+def ageText(s)
+  if s < 60 then return str(s) + " s ago" end
+  if s < 3600 then return str(int(s / 60)) + " min ago" end
+  return str(int(s / 3600)) + " h ago"
+end
+
+def notificationList()
+  while 1 == 1 do
+    bg565(theme.bg())
+    ui.backHeader("Notifications")
+    var n = notify.count()
+    if n == 0 then
+      fontsize(2)
+      textcolor565(theme.hint())
+      textc(120, 160, "No notifications")
+    end
+    var i = 0
+    while i < n do
+      var y = 60 + i * 30
+      ui.card(12, y, 216, 26, 10)
+      fontsize(1)
+      textcolor565(theme.text())
+      textml(22, y + 9, textfit(notify.text(i), 130))
+      textcolor565(theme.hint())
+      textmr(218, y + 9, ageText(notify.age(i)))
+      i = i + 1
+    end
+    if n > 0 then ui.button(60, 268, 120, 36, "Clear all", 1) end
+    var done = 0
+    while done == 0 do
+      if touch.down() == 1 and ui.backTapped() == 1 then
+        while touch.down() == 1 do wait(20) end
+        return
+      end
+      if n > 0 and touch.tap(60, 268, 120, 36) == 1 then
+        notify.clear()
+        done = 1
+      end
+      wait(30)
+    end
+  end
+end
+
 def drawBrightness()
   setcolor565(theme.surface())
   smooth(1)
-  rrect(12, 48, 216, 72, 18)
+  rrect(12, 48, 216, 56, 16)
   smooth(0)
   setcolor565(theme.text())
-  ui.icon("sun", 36, 74, 24, theme.surface())
+  ui.icon("sun", 34, 66, 20, theme.surface())
   textcolor565(theme.text())
   fontsize(2)
-  textml(56, 74, "Brightness")
+  textml(52, 66, "Brightness")
   textcolor565(theme.subtext())
-  textmr(214, 74, str(int(bright * 100 / 255)) + "%")
-  ui.progress(28, 96, 184, 12, bright - 10, 245)
+  textmr(214, 66, str(int(bright * 100 / 255)) + "%")
+  ui.progress(26, 84, 188, 10, bright - 10, 245)
 end
 
 def drawAll()
@@ -85,17 +150,18 @@ def drawAll()
   fontsize(4)
   textcolor565(theme.text())
   text(16, 12, "Control Center")
+  drawBrightness()
   drawWifi()
   drawRestart()
   drawTheme()
   drawSync(syncState(), 0)
-  drawBrightness()
+  drawNotifications()
 end
 
 drawAll()
 
 loop
-  if touch.tap(12, 132, 104, 84) == 1 then
+  if touch.tap(12, 112, 104, 62) == 1 then
     if wifi.isEnabled() == 1 then
       wifi.disable()
     else
@@ -103,16 +169,17 @@ loop
     end
     drawWifi()
   end
-  if touch.tap(124, 132, 104, 84) == 1 then
+  if touch.tap(124, 112, 104, 62) == 1 then
     if ui.dialog("Restart OpenOS?", "Unsaved work in the current app is lost.", "Cancel", "Restart", 1) == 1 then
       sys.reboot()
     end
   end
-  if touch.tap(12, 224, 104, 84) == 1 then
+  if touch.tap(12, 180, 104, 62) == 1 then
     sys.theme(1 - theme())
+    accent = theme.accent()
     drawAll()
   end
-  if touch.tap(124, 224, 104, 84) == 1 then
+  if touch.tap(124, 180, 104, 62) == 1 then
     if wifi.connected() == 0 then
       drawSync("No Wi-Fi", 0)
     else
@@ -124,9 +191,13 @@ loop
       end
     end
   end
+  if touch.tap(12, 248, 216, 60) == 1 then
+    notificationList()
+    drawAll()
+  end
   if touch.down() == 1 then
-    if touch.in(12, 84, 216, 36) == 1 then
-      var v = int((touch.x() - 28) * 245 / 184) + 10
+    if touch.in(12, 76, 216, 26) == 1 then
+      var v = int((touch.x() - 26) * 245 / 188) + 10
       if v < 10 then v = 10 end
       if v > 255 then v = 255 end
       if v != bright then

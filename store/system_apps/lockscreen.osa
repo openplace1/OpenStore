@@ -22,6 +22,76 @@ end
 
 # Theme-aware colours — refreshed on every face draw so changes in
 # Settings → Theme take effect on the next idle redraw.
+# ─── Weather (optional) ───────────────────────────────────────────────────
+# Settings > Time & Date > Lock screen weather stores a place's coordinates;
+# Open-Meteo answers without a key. Fetched at most every 30 minutes while
+# the screen is idle and Wi-Fi is up; the last reading is kept in config so
+# it shows straight after boot.
+var weatherAt = -1
+
+def weatherIcon(code)
+  if code <= 2 then return "sun" end
+  if code <= 48 then return "cloud" end
+  if code >= 71 and code <= 77 then return "snow" end
+  if code >= 85 and code <= 86 then return "snow" end
+  return "rain"
+end
+
+def weatherText(code)
+  if code == 0 then return "Clear" end
+  if code <= 2 then return "Partly cloudy" end
+  if code == 3 then return "Overcast" end
+  if code <= 48 then return "Fog" end
+  if code <= 57 then return "Drizzle" end
+  if code <= 67 then return "Rain" end
+  if code <= 77 then return "Snow" end
+  if code <= 82 then return "Showers" end
+  if code <= 86 then return "Snow showers" end
+  return "Thunderstorm"
+end
+
+def weatherRefresh()
+  var lat = cfg.get("weather_lat", "")
+  if len(lat) == 0 then return 0 end
+  if wifi.connected() == 0 then return 0 end
+  if weatherAt >= 0 and elapsed(weatherAt) < 1800000 then return 0 end
+  weatherAt = millis()
+  var url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + cfg.get("weather_lon", "0")
+  url = url + "&current=temperature_2m,weather_code&timezone=auto"
+  var body = http.get(url)
+  if http.status() != 200 then return 0 end
+  if json.has(body, "current.temperature_2m") == 0 then return 0 end
+  cfg.set("weather_temp", str(round(num(json.get(body, "current.temperature_2m")))))
+  cfg.set("weather_code", json.get(body, "current.weather_code"))
+  cfg.set("weather_at", time.fmtHM())
+  return 1
+end
+
+def drawWeather(dark)
+  var temp = cfg.get("weather_temp", "")
+  if len(temp) == 0 then return end
+  var code = num(cfg.get("weather_code", "0"))
+  if dark == 1 then setcolor(220, 220, 225) end
+  if dark == 0 then setcolor(60, 60, 70) end
+  if dark == 1 then textcolor(220, 220, 225) end
+  if dark == 0 then textcolor(60, 60, 70) end
+  var line = weatherText(code)
+  fontsize(2)
+  var tw = textw(temp)
+  var w = tw + 12 + textw(line) + 30
+  var x0 = 120 - int(w / 2)
+  var bgc = color.rgb(240, 240, 245)
+  if dark == 1 then bgc = color.rgb(15, 15, 22) end
+  ui.icon(weatherIcon(code), x0 + 11, 196, 22, bgc)
+  textml(x0 + 30, 196, temp)
+  ring(x0 + 30 + tw + 3, 190, 2)
+  textml(x0 + 30 + tw + 12, 196, line)
+  fontsize(1)
+  if dark == 1 then textcolor(150, 150, 160) end
+  if dark == 0 then textcolor(120, 120, 130) end
+  textc(120, 214, cfg.get("weather_city", "") + "  " + cfg.get("weather_at", ""))
+end
+
 def drawFace()
   var dark = theme()
   if dark == 1 then bg(15, 15, 22) end
@@ -41,6 +111,7 @@ def drawFace()
   if dark == 1 then textcolor(220, 220, 220) end
   if dark == 0 then textcolor(80, 80, 90) end
   textc(120, 155, time.fmtDate())
+  drawWeather(dark)
   if dark == 1 then textcolor(180, 180, 180) end
   if dark == 0 then textcolor(120, 120, 130) end
   textc(120, 275, "^")
@@ -56,6 +127,7 @@ loop
       lastMin = time.min()
       drawFace()
     end
+    if weatherRefresh() == 1 then drawFace() end
     wait(40)
   end
   if touch.down() == 1 then

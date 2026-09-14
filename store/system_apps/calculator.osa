@@ -1,4 +1,5 @@
 #app "Calc"
+#appIcon "plus"
 #isApp true
 #appColor "#FF9500"
 

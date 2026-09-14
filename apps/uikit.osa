@@ -1,4 +1,5 @@
 #app "UI Kit"
+#appIcon "grid"
 #isApp true
 #appColor "#0A84FF"
 
@@ -87,7 +88,7 @@ def drawShapesStatic()
   # A tab shape: only the top corners are rounded.
   setcolor565(theme.surface())
   rrect4(20, 176, 90, 44, 14, 14, 0, 0)
-  setcolor(0, 122, 255)
+  setcolor565(theme.accent())
   pill(124, 184, 96, 28)
   fontsize(2)
   textcolor(255, 255, 255)
@@ -95,7 +96,7 @@ def drawShapesStatic()
   textcolor565(theme.text())
   textc(65, 198, "rrect4")
 
-  setcolor(0, 122, 255)
+  setcolor565(theme.accent())
   sframe(52, 264, 8, 30, 20, 0, 2)
   setcolor(175, 82, 222)
   nframe(128, 264, 3, 28, 0, 3)

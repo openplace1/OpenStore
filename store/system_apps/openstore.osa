@@ -1,4 +1,5 @@
 #app "OpenStore"
+#appIcon "download"
 #isApp true
 #appColor "#0A84FF"
 #exception true
@@ -56,7 +57,7 @@ def drawGet(item, x, y)
     state = 4
   end
   if state < 2 then
-    setcolor(0, 122, 255)
+    setcolor565(theme.accent())
   else
     setcolor(174, 174, 178)
   end
@@ -107,20 +108,20 @@ def drawTabs()
   setcolor565(lineColor)
   line(0, 282, 240, 282)
   fontsize(1)
-  if tab == 0 then textcolor(0, 122, 255) end
+  if tab == 0 then textcolor565(theme.accent()) end
   if tab != 0 then textcolor565(subColor) end
   textc(60, 300, "Apps")
-  if tab == 1 then textcolor(0, 122, 255) end
+  if tab == 1 then textcolor565(theme.accent()) end
   if tab != 1 then textcolor565(subColor) end
   textc(180, 300, "System Apps")
-  setcolor(0, 122, 255)
+  setcolor565(theme.accent())
   if tab == 0 then rrect(22, 315, 76, 3, 2) end
   if tab == 1 then rrect(142, 315, 76, 3, 2) end
 end
 def drawUpdateAll()
   var available = 0
   if sdk.has("store.updateAll") == 1 then available = store.updateCount() end
-  if available > 0 then setcolor(0, 122, 255) end
+  if available > 0 then setcolor565(theme.accent()) end
   if available <= 0 then setcolor(174, 174, 178) end
   rrect(166, 7, 68, 26, 13)
   textcolor(255, 255, 255)

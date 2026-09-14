@@ -1,4 +1,5 @@
 #app "Cast Receiver"
+#appIcon "play"
 #isApp true
 #appColor "#30B0C7"
 #perm network

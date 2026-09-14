@@ -61,6 +61,12 @@ def drawStatus()
   if dark == 0 then textcolor(0, 0, 0) end
   text(5, 2, "CYD")
   textc(120, 9, time.fmtHM())
+  if battery.available() == 0 then
+    if dark == 1 then setcolor(255, 255, 255) end
+    if dark == 0 then setcolor(0, 0, 0) end
+    if dark == 1 then ui.icon("search", 228, 9, 13, color.rgb(20, 20, 22)) end
+    if dark == 0 then ui.icon("search", 228, 9, 13, color.rgb(245, 245, 247)) end
+  end
   # Battery indicator only when the firmware has a gauge configured
   # (battery_pin in config.ini); the stock CYD has none.
   if battery.available() == 1 then
@@ -95,6 +101,12 @@ def drawTileAt(i, x, y)
   # Tile background — use packed 565 directly from the native color.
   setcolor565(home.appColor(i))
   rrect(x, y, 46, 46, 12)
+  # Built-in icon from the script's #appIcon header, if it has one.
+  var ic = home.appIcon(i)
+  if len(ic) > 0 then
+    setcolor(255, 255, 255)
+    ui.icon(ic, x + 23, y + 23, 26, home.appColor(i))
+  end
   # Folder mini-grid (up to 4 children, 2x2). int() casts — OSA divides as
   # double so j/2 would be 0.5 for j=1 and the row would shift by 9 px.
   if home.appIsFolder(i) == 1 then
@@ -259,6 +271,11 @@ def folderView(idx)
     rrect(x + 2, y + 3, 46, 46, 12)
     setcolor565(home.folderAppColor(idx, i))
     rrect(x, y, 46, 46, 12)
+    var fic = home.folderAppIcon(idx, i)
+    if len(fic) > 0 then
+      setcolor(255, 255, 255)
+      ui.icon(fic, x + 23, y + 23, 26, home.folderAppColor(idx, i))
+    end
     fontsize(2)
     textcolor(0, 0, 0)
     textc(x + 24, y + 61, home.folderAppName(idx, i))
@@ -302,6 +319,134 @@ def folderView(idx)
   end
 end
 
+# ─── App drawer with search ─────────────────────────────────────────────────
+# matchAt(k, want) walks tiles and folder children in order and returns the
+# k-th one whose name contains the query: want 0 name, 1 path, 2 colour,
+# 3 icon; -1 for the count.
+var query = ""
+
+def matchAt(k, want)
+  var q = lower(query)
+  var n = home.appCount()
+  var seen = 0
+  var i = 0
+  while i < n do
+    if home.appIsFolder(i) == 1 then
+      var nf = home.folderCount(i)
+      var j = 0
+      while j < nf do
+        if len(q) == 0 or contains(lower(home.folderAppName(i, j)), q) == 1 then
+          if seen == k then
+            if want == 0 then return home.folderAppName(i, j) end
+            if want == 1 then return home.folderAppPath(i, j) end
+            if want == 2 then return home.folderAppColor(i, j) end
+            return home.folderAppIcon(i, j)
+          end
+          seen = seen + 1
+        end
+        j = j + 1
+      end
+    else
+      if len(q) == 0 or contains(lower(home.appName(i)), q) == 1 then
+        if seen == k then
+          if want == 0 then return home.appName(i) end
+          if want == 1 then return home.appPath(i) end
+          if want == 2 then return home.appColor(i) end
+          return home.appIcon(i)
+        end
+        seen = seen + 1
+      end
+    end
+    i = i + 1
+  end
+  if want == -1 then return seen end
+  return ""
+end
+
+def drawDrawer(first)
+  bg565(theme.bg())
+  ui.backHeader("All apps")
+  ui.card(12, 58, 216, 36, 18)
+  setcolor565(theme.subtext())
+  ui.icon("search", 32, 76, 18, theme.surface())
+  fontsize(2)
+  if len(query) > 0 then
+    textcolor565(theme.text())
+    textml(48, 76, textfit(query, 150))
+  else
+    textcolor565(theme.hint())
+    textml(48, 76, "Search apps")
+  end
+  var total = matchAt(0, -1)
+  var row = 0
+  while row < 6 and first + row < total do
+    var k = first + row
+    var y = 102 + row * 36
+    setcolor565(matchAt(k, 2))
+    smooth(1)
+    rrect(18, y, 28, 28, 8)
+    smooth(0)
+    var ic = matchAt(k, 3)
+    if len(ic) > 0 then
+      setcolor(255, 255, 255)
+      ui.icon(ic, 32, y + 14, 16, matchAt(k, 2))
+    end
+    fontsize(2)
+    textcolor565(theme.text())
+    textml(56, y + 14, textfit(matchAt(k, 0), 160))
+    row = row + 1
+  end
+  if total == 0 then
+    fontsize(2)
+    textcolor565(theme.hint())
+    textc(120, 150, "No apps match")
+  end
+  if total > first + 6 then
+    fontsize(1)
+    textcolor565(theme.hint())
+    textc(120, 312, "swipe up for more")
+  end
+end
+
+def drawerView()
+  var first = 0
+  drawDrawer(first)
+  while 1 == 1 do
+    if touch.down() == 1 and ui.backTapped() == 1 then
+      while touch.down() == 1 do wait(20) end
+      return
+    end
+    if touch.tap(12, 58, 216, 36) == 1 then
+      query = input("Search apps", query)
+      first = 0
+      drawDrawer(first)
+    end
+    if touch.tap(12, 102, 216, 216) == 1 then
+      var k = first + int((touch.endY() - 102) / 36)
+      if k < matchAt(0, -1) then
+        var color = matchAt(k, 2)
+        anim.openAt(18, 102 + (k - first) * 36 - 9, color)
+        app.launch(matchAt(k, 1))
+        exit()
+      end
+    end
+    if gesture.swipeUp() == 1 then
+      if first + 6 < matchAt(0, -1) then
+        first = first + 6
+        drawDrawer(first)
+      end
+    end
+    if gesture.swipeDown() == 1 then
+      if first > 0 then
+        first = first - 6
+        if first < 0 then first = 0 end
+        drawDrawer(first)
+      end
+    end
+    wait(25)
+  end
+end
+
 # ─── Main interaction loop ──────────────────────────────────────────────────
 drawAll()
 
@@ -318,6 +463,13 @@ loop
   if touch.down() == 1 then
     var sx = touch.x()
     var sy = touch.y()
+    if sy < 18 and sx > 196 then
+      while touch.down() == 1 do wait(20) end
+      drawerView()
+      drawAll()
+      sx = -1
+      sy = -1
+    end
     var idx = hitTest(sx, sy)
     var t0 = millis()
     var mode = 0  # 0=undecided, 1=drag, 2=menu_done, 3=swipe

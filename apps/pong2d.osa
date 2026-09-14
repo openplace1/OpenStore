@@ -1,4 +1,5 @@
 #app "Pong 2D"
+#appIcon "play"
 #isApp true
 #appColor "#34C759"
 

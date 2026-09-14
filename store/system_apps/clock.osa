@@ -1,4 +1,5 @@
 #app "Clock"
+#appIcon "clock"
 #isApp true
 #appColor "#5856D6"
 

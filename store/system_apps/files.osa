@@ -1,4 +1,5 @@
 #app "Files"
+#appIcon "folder"
 #isApp true
 #appColor "#34C759"
 

@@ -1,4 +1,5 @@
 #app "Notes"
+#appIcon "note"
 #isApp true
 #appColor "#FFCC00"
 

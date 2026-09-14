@@ -1,4 +1,5 @@
 #app "3D Shapes"
+#appIcon "cube"
 #isApp true
 #appColor "#FF9500"
 

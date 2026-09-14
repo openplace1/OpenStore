@@ -154,15 +154,15 @@
   ],
   "appsCache": {
     "apps/cube3d.osa": {
-      "sha256": "030a8ac6bcd296da3ee74f4775ec966ff3bd4e078bf633ce142a8bad9d2e12d3",
+      "sha256": "8c9c128f5e5819d1645dd444b1cfe0ca17013afa3f51df63882f3c296f130c46",
       "metadata": {
         "id": "openplace.cube3d",
         "name": "3D Cube",
         "summary": "Rotating 3D cube demo for the OSA SDK.",
         "description": "A lightweight rotating 3D cube that demonstrates the OSA pseudo-3D API. Tap the viewport to switch between wireframe, solid and solid-with-edges rendering modes.",
         "developer": "openplace1",
-        "version": "1.1.0",
-        "versionCode": 2,
+        "version": "1.1.1",
+        "versionCode": 3,
         "minSdk": 2,
         "minOpenOS": 1,
         "appColor": "#5E5CE6",
@@ -171,15 +171,15 @@
       }
     },
     "apps/pong2d.osa": {
-      "sha256": "a156006786a739bf4dac0b27cea356b6a2be94ea29df02ac44659590867b4de3",
+      "sha256": "46f7156defe162e8582bbb0d54ea62e5d8e4ba66ab8327620abe89fac1ff6a9a",
       "metadata": {
         "id": "openplace.pong2d",
         "name": "Pong 2D",
         "summary": "One-player Pong on the whole screen.",
         "description": "A fast one-player Pong game designed for the OpenOS touchscreen. Drag the paddle, keep the ball in play and beat your best score.",
         "developer": "openplace1",
-        "version": "1.1.0",
-        "versionCode": 2,
+        "version": "1.1.1",
+        "versionCode": 3,
         "minSdk": 2,
         "minOpenOS": 1,
         "appColor": "#34C759",
@@ -188,15 +188,15 @@
       }
     },
     "apps/lane_runner3d.osa": {
-      "sha256": "75bf18bcdd38886e771637cc8112804b5b23c0a6c2d4b4f41539f08690ee188d",
+      "sha256": "a8a6a1c6c0c4294e3dce85a511652caaae5764146a49c5e71b633f6f0b735e84",
       "metadata": {
         "id": "openplace.lanerunner3d",
         "name": "Lane Runner 3D",
         "summary": "Dodge the red cube on a full-screen 3D road.",
         "description": "A lightweight three-lane 3D runner. Tap the left or right side of the screen to change lane, avoid incoming cubes and survive as the speed increases.",
         "developer": "openplace1",
-        "version": "1.2.1",
-        "versionCode": 4,
+        "version": "1.2.2",
+        "versionCode": 5,
         "minSdk": 5,
         "minOpenOS": 23,
         "appColor": "#FF9F0A",
@@ -205,15 +205,15 @@
       }
     },
     "apps/uikit.osa": {
-      "sha256": "7d360588782ac30fb5eaa1cb0ee78f99d91bdfb006f34307be91da31b8700407",
+      "sha256": "fca5aca4dd21fb227579efed41056162192f4257b2f785a67afca937c8fe9541",
       "metadata": {
         "id": "openplace.uikit",
         "name": "UI Kit",
         "summary": "Widgets, dialogs and custom shapes from OSA SDK 4.",
         "description": "A tour of the immediate-mode widgets (buttons, switches, checkboxes, radios, progress, chips), the redesigned system dialog and the custom shape calls (stars, polygons, pies, per-corner rounded rectangles and animated paths) added in OSA SDK 4. A reference for app developers.",
         "developer": "openplace1",
-        "version": "1.0.0",
-        "versionCode": 1,
+        "version": "1.0.1",
+        "versionCode": 2,
         "minSdk": 4,
         "minOpenOS": 21,
         "appColor": "#0A84FF",
@@ -222,15 +222,15 @@
       }
     },
     "apps/shapes3d.osa": {
-      "sha256": "2ca9f2c1d22a63c295348b54315d6c2210fd326278bfae7d45484c44ece2e624",
+      "sha256": "7eb5927e12c77885d7d46687c6b4241ee876d05784209a65803af2d771ac0474",
       "metadata": {
         "id": "openplace.shapes3d",
         "name": "3D Shapes",
         "summary": "Full-screen 3D scene with five orbiting shapes.",
         "description": "Five shapes orbiting on a grid, depth-sorted as one scene and rendered through a 240x40 band buffer so the whole 240x320 screen is drawn at 16-bit colour. Drag to orbit the camera, tap to switch between wireframe, solid and solid-with-edges. The reference for the OSA SDK 5 scene API.",
         "developer": "openplace1",
-        "version": "1.0.0",
-        "versionCode": 1,
+        "version": "1.0.1",
+        "versionCode": 2,
         "minSdk": 5,
         "minOpenOS": 23,
         "appColor": "#FF9500",
@@ -239,15 +239,15 @@
       }
     },
     "apps/castreceiver.osa": {
-      "sha256": "13e3d3f8b9e43352412f889247b8e314fb3c70faae6f5895f120ee99aa702142",
+      "sha256": "03919597e6e57ba44f9da55082ac9741f97d7e247a3dddf53b03ab9b0831c791",
       "metadata": {
         "id": "openplace.castreceiver",
         "name": "Cast Receiver",
         "summary": "Shows a computer screen streamed over Wi-Fi.",
         "description": "Turns the device into a small second display: run tools/cast_sender.py from the OpenStore repository on a computer and its screen is streamed over a plain TCP connection as RGB565 tiles. Built entirely from the OSA SDK 6 building blocks: net.listen/accept/recv, byte buffers and screen.write. Needs the Network permission.",
         "developer": "openplace1",
-        "version": "1.0.0",
-        "versionCode": 1,
+        "version": "1.0.1",
+        "versionCode": 2,
         "minSdk": 6,
         "minOpenOS": 24,
         "appColor": "#30B0C7",

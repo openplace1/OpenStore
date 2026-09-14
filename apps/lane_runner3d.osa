@@ -1,4 +1,5 @@
 #app "Lane Runner 3D"
+#appIcon "play"
 #isApp true
 #appColor "#FF9F0A"
 
