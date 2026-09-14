@@ -320,47 +320,14 @@ def folderView(idx)
 end
 
 # ─── App drawer with search ─────────────────────────────────────────────────
-# matchAt(k, want) walks tiles and folder children in order and returns the
-# k-th one whose name contains the query: want 0 name, 1 path, 2 colour,
-# 3 icon; -1 for the count.
+# home.sortedAt walks every page and folder natively and hands back the k-th
+# app in alphabetical order whose name contains the query: want 0 name,
+# 1 path, 2 colour, 3 icon; home.sortedCount gives the total.
 var query = ""
 
 def matchAt(k, want)
-  var q = lower(query)
-  var n = home.appCount()
-  var seen = 0
-  var i = 0
-  while i < n do
-    if home.appIsFolder(i) == 1 then
-      var nf = home.folderCount(i)
-      var j = 0
-      while j < nf do
-        if len(q) == 0 or contains(lower(home.folderAppName(i, j)), q) == 1 then
-          if seen == k and want >= 0 then
-            if want == 0 then return home.folderAppName(i, j) end
-            if want == 1 then return home.folderAppPath(i, j) end
-            if want == 2 then return home.folderAppColor(i, j) end
-            return home.folderAppIcon(i, j)
-          end
-          seen = seen + 1
-        end
-        j = j + 1
-      end
-    else
-      if len(q) == 0 or contains(lower(home.appName(i)), q) == 1 then
-        if seen == k and want >= 0 then
-          if want == 0 then return home.appName(i) end
-          if want == 1 then return home.appPath(i) end
-          if want == 2 then return home.appColor(i) end
-          return home.appIcon(i)
-        end
-        seen = seen + 1
-      end
-    end
-    i = i + 1
-  end
-  if want == -1 then return seen end
-  return ""
+  if want == -1 then return home.sortedCount(query) end
+  return home.sortedAt(query, k, want)
 end
 
 def drawDrawer(first)
