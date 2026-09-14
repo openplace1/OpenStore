@@ -1,0 +1,218 @@
+#app "Weather"
+#appIcon "sun"
+#isApp true
+#appColor "#30B0C7"
+
+# Current conditions, the next twelve hours and five days for the place set
+# under Settings > Time & Date (or with the pin button here). Open-Meteo
+# answers without a key; the current reading is also written to the config
+# keys the lock screen shows.
+
+#const HOURS 12
+#const DAYS 5
+
+while touch.down() == 1 do wait(10) end
+wait(80)
+
+var body = ""
+var city = cfg.get("weather_city", "")
+var accent = theme.accent()
+
+def iconFor(code)
+  if code <= 2 then return "sun" end
+  if code <= 48 then return "cloud" end
+  if code >= 71 and code <= 77 then return "snow" end
+  if code >= 85 and code <= 86 then return "snow" end
+  return "rain"
+end
+
+def textFor(code)
+  if code == 0 then return "Clear sky" end
+  if code == 1 then return "Mainly clear" end
+  if code == 2 then return "Partly cloudy" end
+  if code == 3 then return "Overcast" end
+  if code <= 48 then return "Fog" end
+  if code <= 57 then return "Drizzle" end
+  if code <= 67 then return "Rain" end
+  if code <= 77 then return "Snow" end
+  if code <= 82 then return "Showers" end
+  if code <= 86 then return "Snow showers" end
+  return "Thunderstorm"
+end
+
+def degrees(x, y, value, big)
+  # A number with a small ring for the degree sign, right after the digits.
+  var t = str(round(value))
+  if big == 1 then fontsize(6) end
+  if big == 0 then fontsize(2) end
+  text(x, y, t)
+  var w = textw(t)
+  if big == 1 then ring(x + w + 6, y + 6, 3) end
+  if big == 0 then ring(x + w + 3, y + 2, 2) end
+  return w
+end
+
+def setPlace()
+  var name = input("City", city)
+  if len(name) == 0 then return 0 end
+  if wifi.connected() == 0 then
+    ui.alert("Weather", "Connect to Wi-Fi to look the place up.")
+    return 0
+  end
+  cls()
+  ui.header("Weather")
+  fontsize(2)
+  textcolor565(theme.subtext())
+  textc(120, 150, "Looking up " + textfit(name, 140) + "...")
+  var r = http.get("https://geocoding-api.open-meteo.com/v1/search?name=" + url_encode(name) + "&count=1&language=en")
+  if http.status() != 200 or json.has(r, "results.0.latitude") == 0 then
+    ui.alert("Weather", "Place not found.")
+    return 0
+  end
+  city = json.get(r, "results.0.name")
+  cfg.set("weather_city", city)
+  cfg.set("weather_lat", json.get(r, "results.0.latitude"))
+  cfg.set("weather_lon", json.get(r, "results.0.longitude"))
+  cfg.del("weather_at")
+  return 1
+end
+
+def fetch()
+  var lat = cfg.get("weather_lat", "")
+  if len(lat) == 0 then return 0 end
+  if wifi.connected() == 0 then return 0 end
+  var url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + cfg.get("weather_lon", "0")
+  url = url + "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m"
+  url = url + "&hourly=temperature_2m,weather_code&forecast_hours=" + str(HOURS)
+  url = url + "&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=" + str(DAYS) + "&timezone=auto"
+  body = http.get(url)
+  if http.status() != 200 or json.has(body, "current.temperature_2m") == 0 then
+    body = ""
+    return 0
+  end
+  cfg.set("weather_temp", str(round(num(json.get(body, "current.temperature_2m")))))
+  cfg.set("weather_code", json.get(body, "current.weather_code"))
+  cfg.set("weather_at", time.fmtHM())
+  return 1
+end
+
+def drawEmpty(msg)
+  bg565(theme.bg())
+  ui.header("Weather")
+  setcolor565(theme.hint())
+  ui.icon("cloud", 120, 120, 48, theme.bg())
+  fontsize(2)
+  textcolor565(theme.subtext())
+  textc(120, 168, msg)
+  ui.button(50, 210, 140, 40, "Choose a place", 0)
+end
+
+def drawAll()
+  bg565(theme.bg())
+  # Place, time of the reading, and the two round buttons.
+  fontsize(4)
+  textcolor565(theme.text())
+  text(14, 12, textfit(city, 140))
+  fontsize(1)
+  textcolor565(theme.subtext())
+  text(14, 42, "Updated " + cfg.get("weather_at", "") + "  -  Open-Meteo")
+  ui.iconButton(178, 28, 34, "search", 1)
+  ui.iconButton(216, 28, 34, "sync", 1)
+
+  # Now.
+  var code = num(json.get(body, "current.weather_code"))
+  var temp = num(json.get(body, "current.temperature_2m"))
+  setcolor565(accent)
+  ui.icon(iconFor(code), 44, 92, 52, theme.bg())
+  textcolor565(theme.text())
+  setcolor565(theme.text())
+  degrees(84, 56, temp, 1)
+  fontsize(2)
+  textcolor565(theme.subtext())
+  text(84, 106, textFor(code))
+  fontsize(1)
+  textcolor565(theme.hint())
+  var feels = "Feels " + str(round(num(json.get(body, "current.apparent_temperature"))))
+  var extra = feels + "   Humidity " + json.get(body, "current.relative_humidity_2m") + "%   Wind " + str(round(num(json.get(body, "current.wind_speed_10m")))) + " km/h"
+  text(14, 126, textfit(extra, 212))
+
+  # Next hours: a strip of six of the twelve (every second one fits).
+  ui.card(12, 142, 216, 70, 14)
+  var i = 0
+  while i < 6 do
+    var h = i * 2
+    var cx = 30 + i * 36
+    var stamp = json.get(body, "hourly.time." + str(h))
+    fontsize(1)
+    textcolor565(theme.subtext())
+    textc(cx, 152, substr(stamp, 11, 5))
+    setcolor565(theme.text())
+    ui.icon(iconFor(num(json.get(body, "hourly.weather_code." + str(h)))), cx, 176, 18, theme.surface())
+    textcolor565(theme.text())
+    textc(cx, 200, str(round(num(json.get(body, "hourly.temperature_2m." + str(h))))))
+    i = i + 1
+  end
+
+  # Days.
+  ui.card(12, 220, 216, 92, 14)
+  var d = 0
+  while d < DAYS do
+    var y = 230 + d * 16
+    var date = json.get(body, "daily.time." + str(d))
+    fontsize(1)
+    textcolor565(theme.subtext())
+    if d == 0 then textml(24, y, "Today") end
+    if d > 0 then textml(24, y, substr(date, 8, 2) + "." + substr(date, 5, 2)) end
+    setcolor565(theme.text())
+    ui.icon(iconFor(num(json.get(body, "daily.weather_code." + str(d)))), 92, y, 12, theme.surface())
+    textcolor565(theme.text())
+    textmr(180, y, str(round(num(json.get(body, "daily.temperature_2m_max." + str(d))))))
+    textcolor565(theme.hint())
+    textmr(214, y, str(round(num(json.get(body, "daily.temperature_2m_min." + str(d))))))
+    d = d + 1
+  end
+end
+
+def refresh()
+  if len(cfg.get("weather_lat", "")) == 0 then
+    drawEmpty("No place chosen yet")
+    return
+  end
+  bg565(theme.bg())
+  ui.header("Weather")
+  fontsize(2)
+  textcolor565(theme.subtext())
+  textc(120, 150, "Fetching " + textfit(city, 140) + "...")
+  if fetch() == 1 then
+    drawAll()
+  else
+    if wifi.connected() == 0 then
+      drawEmpty("Wi-Fi is not connected")
+    else
+      drawEmpty("Could not reach Open-Meteo")
+    end
+  end
+end
+
+refresh()
+
+loop
+  if len(body) == 0 then
+    if touch.tap(50, 210, 140, 40) == 1 then
+      if setPlace() == 1 then refresh() end
+    end
+  else
+    if touch.tap(160, 10, 36, 36) == 1 then
+      if setPlace() == 1 then
+        refresh()
+      else
+        drawAll()
+      end
+    end
+    if touch.tap(198, 10, 36, 36) == 1 then
+      cfg.del("weather_at")
+      refresh()
+    end
+  end
+  wait(30)
+end

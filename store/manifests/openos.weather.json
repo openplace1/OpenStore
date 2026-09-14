@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "id": "openos.weather",
+  "name": "Weather",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "minSdk": 7,
+  "minOpenOS": 27,
+  "entry": "app.osa",
+  "scope": "system",
+  "isApp": true
+}

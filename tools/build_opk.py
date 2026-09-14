@@ -59,6 +59,7 @@ SYSTEM_IDS = {
     "openos.notes",
     "openos.compiler",
     "openos.openstore",
+    "openos.weather",
 }
 
 

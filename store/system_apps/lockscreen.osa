@@ -89,7 +89,7 @@ def drawWeather(dark)
   fontsize(1)
   if dark == 1 then textcolor(150, 150, 160) end
   if dark == 0 then textcolor(120, 120, 130) end
-  textc(120, 214, cfg.get("weather_city", "") + "  " + cfg.get("weather_at", ""))
+  textc(120, 214, cfg.get("weather_city", ""))
 end
 
 def drawFace()
