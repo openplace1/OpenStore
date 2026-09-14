@@ -61,12 +61,6 @@ def drawStatus()
   if dark == 0 then textcolor(0, 0, 0) end
   text(5, 2, "CYD")
   textc(120, 9, time.fmtHM())
-  if battery.available() == 0 then
-    if dark == 1 then setcolor(255, 255, 255) end
-    if dark == 0 then setcolor(0, 0, 0) end
-    if dark == 1 then ui.icon("search", 228, 9, 13, color.rgb(20, 20, 22)) end
-    if dark == 0 then ui.icon("search", 228, 9, 13, color.rgb(245, 245, 247)) end
-  end
   # Battery indicator only when the firmware has a gauge configured
   # (battery_pin in config.ini); the stock CYD has none.
   if battery.available() == 1 then
@@ -417,7 +411,8 @@ end
 # ─── Main interaction loop ──────────────────────────────────────────────────
 drawAll()
 # A swipe up from the bottom edge reloads Home with this flag set: open the
-# drawer straight away, the way the gesture works on a phone.
+# drawer straight away, the way the gesture works on a phone. It is the only
+# way in — a status-bar button proved too small to hit.
 if home.drawerRequested() == 1 then
   drawerView()
   drawAll()
@@ -436,13 +431,6 @@ loop
   if touch.down() == 1 then
     var sx = touch.x()
     var sy = touch.y()
-    if sy < 18 and sx > 196 then
-      while touch.down() == 1 do wait(20) end
-      drawerView()
-      drawAll()
-      sx = -1
-      sy = -1
-    end
     var idx = hitTest(sx, sy)
     var t0 = millis()
     var mode = 0  # 0=undecided, 1=drag, 2=menu_done, 3=swipe
