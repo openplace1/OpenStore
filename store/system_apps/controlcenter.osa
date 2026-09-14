@@ -2,9 +2,9 @@
 #appColor "#5856D6"
 
 # Quick controls as tiles: tap a tile to toggle it, drag the brightness bar,
-# swipe up to close. Brightness sits at the top so the closing swipe from the
-# bottom edge never runs through it. The wide tile at the bottom keeps the
-# last notifications; tap it for the full list.
+# swipe up to close, swipe down for the notification list. Brightness sits
+# at the top so the closing swipe from the bottom edge never runs through
+# it. The wide tile at the bottom keeps the last notifications.
 
 while touch.down() == 1 do wait(20) end
 wait(120)
@@ -159,8 +159,18 @@ def drawAll()
 end
 
 drawAll()
+# A second swipe down from the top edge reloads Control Center with this
+# flag set: go straight to the notifications, like a notification shade.
+if notify.requested() == 1 then
+  notificationList()
+  drawAll()
+end
 
 loop
+  if gesture.swipeDown() == 1 then
+    notificationList()
+    drawAll()
+  end
   if touch.tap(12, 112, 104, 62) == 1 then
     if wifi.isEnabled() == 1 then
       wifi.disable()
