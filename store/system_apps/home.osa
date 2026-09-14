@@ -371,7 +371,7 @@ def drawDrawer(first)
   if total > first + 6 then
     fontsize(1)
     textcolor565(theme.hint())
-    textc(120, 312, "swipe up for more")
+    textc(120, 312, "swipe for more")
   end
 end
 
@@ -416,6 +416,12 @@ end
 
 # ─── Main interaction loop ──────────────────────────────────────────────────
 drawAll()
+# A swipe up from the bottom edge reloads Home with this flag set: open the
+# drawer straight away, the way the gesture works on a phone.
+if home.drawerRequested() == 1 then
+  drawerView()
+  drawAll()
+end
 
 loop
   # Idle: redraw status bar on minute change.
