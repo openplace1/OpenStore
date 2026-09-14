@@ -336,7 +336,7 @@ def matchAt(k, want)
       var j = 0
       while j < nf do
         if len(q) == 0 or contains(lower(home.folderAppName(i, j)), q) == 1 then
-          if seen == k then
+          if seen == k and want >= 0 then
             if want == 0 then return home.folderAppName(i, j) end
             if want == 1 then return home.folderAppPath(i, j) end
             if want == 2 then return home.folderAppColor(i, j) end
@@ -348,7 +348,7 @@ def matchAt(k, want)
       end
     else
       if len(q) == 0 or contains(lower(home.appName(i)), q) == 1 then
-        if seen == k then
+        if seen == k and want >= 0 then
           if want == 0 then return home.appName(i) end
           if want == 1 then return home.appPath(i) end
           if want == 2 then return home.appColor(i) end
