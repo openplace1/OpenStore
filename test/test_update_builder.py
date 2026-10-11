@@ -102,6 +102,13 @@ class UpdateBuilderTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 build_update.verify_release(info_path, public_path)
 
+    def test_rotated_firmware_feed_verifies(self) -> None:
+        info = build_update.verify_release(
+            ROOT / "update" / "info-v2.json",
+            ROOT / "update" / "openos-release-2026-10-public.pem")
+        self.assertEqual(info["keyId"], build_update.NEW_KEY_ID)
+        self.assertEqual(info["versionCode"], 28)
+
 
 if __name__ == "__main__":
     unittest.main()

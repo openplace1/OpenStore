@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "product": "openos",
+  "channel": "stable",
+  "target": "denky32-wroom32",
+  "partitionScheme": "openos-dual-v1",
+  "name": "OpenOS 1.7.2",
+  "version": "1.7.2",
+  "versionCode": 28,
+  "minUpdaterVersionCode": 1,
+  "releaseType": "patch",
+  "description": "Native Recovery for failed SD or system scripts, stronger first-boot OTA validation, system-app self-test, crash diagnostics and checked OSA bytecode cache. Includes new release key trust for future updates. Devices on older firmware must migrate once over USB because the previous signing key was lost.",
+  "publishedAt": "2026-10-11",
+  "firmware": "firmware-28.bin",
+  "size": 1303968,
+  "sha256": "a825bffd28dc9bc6f5cc2e1584ca8b4fc67b8dcf2f708e3db3093bd0d5854974",
+  "keyId": "openos-release-2026-10",
+  "signature": "MEUCIFzQrYjcSQV3ybs+dgzbN+LSj8VH7WTNgrCjzn7WgAUDAiEAvVmpwNusozUmRO6aTRsuFJ3UW8EHFIRIKzg3f5d2SDQ="
+}

@@ -36,6 +36,7 @@ MAX_CATALOG_BYTES = 24 * 1024
 MAX_OSA_SOURCE_BYTES = 128 * 1024
 MAX_OSA_LINES = 1024
 MAX_OSA_LINE_BYTES = 768
+MAX_OSA_FUNCS = 24
 MAX_OSAC_BYTES = 96 * 1024
 
 # Catalog signing. The device hashes "OPENOS-CATALOG-V1\n" followed by the
@@ -81,9 +82,10 @@ def write_text_lf(path: Path, value: str) -> None:
         stream.write(value)
 
 
-def unsigned_catalog_bytes(apps: list[dict[str, object]]) -> bytes:
+def unsigned_catalog_bytes(apps: list[dict[str, object]],
+                           key_id: str = KEY_ID) -> bytes:
     """Compact catalog text without a trailing newline; this is what gets signed."""
-    return json.dumps({"schema": 1, "apps": apps, "keyId": KEY_ID},
+    return json.dumps({"schema": 1, "apps": apps, "keyId": key_id},
                       ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
 
@@ -126,7 +128,8 @@ def sign_catalog(unsigned: bytes, private_key_path: Path) -> bytes:
     return signed_catalog_bytes(unsigned, base64.b64encode(signature).decode("ascii"))
 
 
-def verify_catalog(document: bytes, public_key_path: Path) -> dict[str, Any]:
+def verify_catalog(document: bytes, public_key_path: Path,
+                   key_id: str = KEY_ID) -> dict[str, Any]:
     tools = release_tools()
     from cryptography.exceptions import InvalidSignature
     from cryptography.hazmat.primitives import hashes
@@ -134,7 +137,7 @@ def verify_catalog(document: bytes, public_key_path: Path) -> dict[str, Any]:
     unsigned, signature_b64 = split_signed_catalog(document)
     parsed = json.loads(unsigned)
     require(isinstance(parsed, dict) and parsed.get("schema") == 1 and
-            parsed.get("keyId") == KEY_ID, "catalog schema or keyId is not accepted by OpenOS")
+            parsed.get("keyId") == key_id, "catalog schema or keyId is not accepted by OpenOS")
     try:
         signature = base64.b64decode(signature_b64, validate=True)
     except ValueError as exc:
@@ -238,6 +241,23 @@ def canonical_osa_bytes(data: bytes) -> bytes:
 def archive_source_bytes(path: Path, archive_name: str) -> bytes:
     data = path.read_bytes()
     return canonical_osa_bytes(data) if archive_name.lower().endswith(".osa") else data
+
+
+def validate_osa_entry(entry_bytes: bytes, package_id: str) -> None:
+    require(len(entry_bytes) <= MAX_OSA_SOURCE_BYTES,
+            f"{package_id}: OSA entry source exceeds 128 KB")
+    source_lines = entry_bytes.replace(b"\r\n", b"\n").replace(b"\r", b"").split(b"\n")
+    if source_lines and source_lines[-1] == b"":
+        source_lines.pop()
+    require(len(source_lines) <= MAX_OSA_LINES,
+            f"{package_id}: OSA entry exceeds {MAX_OSA_LINES} lines")
+    require(all(len(line) <= MAX_OSA_LINE_BYTES for line in source_lines),
+            f"{package_id}: OSA entry has a line longer than 768 bytes")
+    # OSARuntime registers only the first 24 definitions. Calls to later
+    # definitions silently become unknown builtins when the script runs.
+    func_count = sum(line.strip().startswith(b"def ") for line in source_lines)
+    require(func_count <= MAX_OSA_FUNCS,
+            f"{package_id}: OSA entry defines {func_count} functions (max {MAX_OSA_FUNCS})")
 
 
 def existing_package_matches(path: Path, manifest_bytes: bytes,
@@ -531,15 +551,7 @@ def build_package(package: Any, seen_ids: set[str], base_url: str) -> dict[str, 
     entry_source = source_path(file_map[manifest["entry"]])
     entry_bytes = archive_source_bytes(entry_source, manifest["entry"])
     if manifest["entry"].lower().endswith(".osa"):
-        require(len(entry_bytes) <= MAX_OSA_SOURCE_BYTES,
-                f"{package_id}: OSA entry source exceeds 128 KB")
-        source_lines = entry_bytes.replace(b"\r\n", b"\n").replace(b"\r", b"").split(b"\n")
-        if source_lines and source_lines[-1] == b"":
-            source_lines.pop()
-        require(len(source_lines) <= MAX_OSA_LINES,
-                f"{package_id}: OSA entry exceeds {MAX_OSA_LINES} lines")
-        require(all(len(line) <= MAX_OSA_LINE_BYTES for line in source_lines),
-                f"{package_id}: OSA entry has a line longer than 768 bytes")
+        validate_osa_entry(entry_bytes, package_id)
     else:
         require(len(entry_bytes) <= MAX_OSAC_BYTES,
                 f"{package_id}: OSAC entry exceeds 96 KB")
@@ -603,17 +615,25 @@ def build_package(package: Any, seen_ids: set[str], base_url: str) -> dict[str, 
 
 
 def main() -> None:
+    global OUTPUT
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--key", type=Path,
                         help="private ECDSA P-256 release key; signs the catalog")
     parser.add_argument("--verify", action="store_true",
                         help="verify the signature of store/catalog.json and exit")
     parser.add_argument("--public-key", type=Path, default=DEFAULT_PUBLIC_KEY)
+    parser.add_argument("--key-id", default=KEY_ID,
+                        choices=(KEY_ID, "openos-release-2026-10"))
+    parser.add_argument("--catalog", type=Path, default=STORE / "catalog.json")
+    parser.add_argument("--packages-dir", type=Path, default=OUTPUT)
+    parser.add_argument("--package-base-url", type=str)
     args = parser.parse_args()
 
-    catalog_path = STORE / "catalog.json"
+    catalog_path = args.catalog.resolve()
+    OUTPUT = args.packages_dir.resolve()
     if args.verify:
-        parsed = verify_catalog(catalog_path.read_bytes(), args.public_key.resolve())
+        parsed = verify_catalog(catalog_path.read_bytes(), args.public_key.resolve(),
+                                args.key_id)
         print(f"Verified {catalog_path.relative_to(ROOT)} ({len(parsed['apps'])} apps)")
         return
 
@@ -637,16 +657,17 @@ def main() -> None:
     )
 
     require(isinstance(config.get("packages"), list), "build.json must contain a packages array")
-    base_url = package_base_url(config.get("packageBaseUrl", DEFAULT_PACKAGE_BASE))
+    base_url = package_base_url(args.package_base_url or
+                                config.get("packageBaseUrl", DEFAULT_PACKAGE_BASE))
 
     seen_ids: set[str] = set()
     catalog_apps = [build_package(package, seen_ids, base_url)
                     for package in config["packages"]]
     catalog_apps.sort(key=lambda item: str(item["id"]))
-    unsigned = unsigned_catalog_bytes(catalog_apps)
+    unsigned = unsigned_catalog_bytes(catalog_apps, args.key_id)
     if args.key:
         catalog_bytes = sign_catalog(unsigned, args.key.resolve())
-        verify_catalog(catalog_bytes, args.public_key.resolve())
+        verify_catalog(catalog_bytes, args.public_key.resolve(), args.key_id)
     else:
         catalog_bytes = unsigned + b"\n"
         print("WARNING: catalog is unsigned; OpenOS 1.2+ devices reject it. "

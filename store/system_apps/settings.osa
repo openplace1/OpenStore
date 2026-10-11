@@ -6,11 +6,6 @@
 while touch.down() == 1 do wait(20) end
 wait(150)
 
-def waitTap()
-  while touch.down() == 0 do wait(40) end
-  while touch.down() == 1 do wait(20) end
-end
-
 # Eight accent swatches; the first restores the default blue.
 def accentAt(i)
   if i == 0 then return color.rgb(0, 122, 255) end
@@ -101,9 +96,13 @@ def displayScreen()
 end
 
 def wifiConnect()
-  ui.alert("Wi-Fi", "Scanning networks...")
+  bg565(theme.bg())
+  ui.header("Wi-Fi")
+  fontsize(2)
+  textcolor565(theme.subtext())
+  textc(120, 160, "Scanning networks...")
   var n = wifi.scan()
-  if n == 0 then ui.alert("Wi-Fi", "No networks found") return end
+  if n <= 0 then ui.alert("Wi-Fi", "No networks found") return end
   var list = ""
   var i = 0
   while i < n do
@@ -118,7 +117,11 @@ def wifiConnect()
   var ssid = wifi.scanSsid(pick)
   var pwd = ""
   if wifi.scanSecure(pick) == 1 then pwd = input("Password for " + ssid, "") end
-  ui.alert("Wi-Fi", "Connecting to " + ssid)
+  bg565(theme.bg())
+  ui.header("Wi-Fi")
+  fontsize(2)
+  textcolor565(theme.subtext())
+  textc(120, 160, "Connecting...")
   var ok = wifi.connect(ssid, pwd)
   if ok == 1 then
     wifi.save(ssid, pwd)
@@ -228,7 +231,7 @@ def wallpapersScreen()
         while idx < endIdx do
           var localIdx = idx - startIdx
           var col = localIdx % 2
-          var row = localIdx / 2
+          var row = int(localIdx / 2)
           var tx = 26 + col * 107
           var ty = 108 + row * 105
           var name = split(list, "|", idx)
@@ -428,7 +431,6 @@ def applicationsScreen()
     return
   end
   while 1 == 1 do
-    n = apps.scan()
     ui.menuStart("Applications", 1)
     var i = 0
     while i < n do
@@ -544,14 +546,6 @@ def sizeText(bytes)
   return str(int(bytes / 1024)) + " KB"
 end
 
-def infoRow(y, label, value)
-  fontsize(2)
-  textcolor565(theme.subtext())
-  textml(26, y, label)
-  textcolor565(theme.text())
-  textmr(214, y, textfit(value, 124))
-end
-
 def waitBack()
   while 1 == 1 do
     if touch.down() == 1 and ui.backTapped() == 1 then
@@ -573,7 +567,11 @@ def infoCard(title, rows)
   while i < count do
     var entry = split(rows, "|", i)
     var eq = indexof(entry, "=")
-    infoRow(y, substr(entry, 0, eq), substr(entry, eq + 1, len(entry) - eq - 1))
+    fontsize(2)
+    textcolor565(theme.subtext())
+    textml(26, y, substr(entry, 0, eq))
+    textcolor565(theme.text())
+    textmr(214, y, textfit(substr(entry, eq + 1, len(entry) - eq - 1), 124))
     y = y + 26
     i = i + 1
   end
@@ -740,9 +738,11 @@ loop
   ui.menuStart("Settings")
   var wifiVal = "OFF >"
   if wifi.isEnabled() == 1 then wifiVal = "ON >" end
+  var passcodeVal = "OFF >"
+  if len(crypto.decrypt(cfg.get("passcode", ""))) > 0 then passcodeVal = "ON >" end
   ui.menuRow("Wi-Fi",                "W",   0, 122, 255, wifiVal)
   ui.menuRow("Display & Brightness", "D", 142, 142, 147, ">")
-  ui.menuRow("Passcode",             "P", 255,  45,  85, "OFF >")
+  ui.menuRow("Passcode",             "P", 255,  45,  85, passcodeVal)
   ui.menuRow("Wallpapers",           "W", 175,  82, 222, ">")
   ui.menuRow("Time & Date",          "T", 255, 149,   0, ">")
   ui.menuRow("SD Card",              "SD", 52, 199,  89, ">")

@@ -30,6 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INFO = ROOT / "update" / "info.json"
 DEFAULT_PUBLIC_KEY = ROOT / "update" / "openos-release-2026-02-public.pem"
 KEY_ID = "openos-release-2026-02"
+NEW_KEY_ID = "openos-release-2026-10"
 TARGET = "denky32-wroom32"
 PARTITION_SCHEME = "openos-dual-v1"
 MAX_SLOT_BYTES = 0x1F0000
@@ -135,7 +136,8 @@ def validate_metadata(info: dict[str, Any]) -> None:
     require(info["target"] == TARGET, "target does not match release hardware")
     require(info["partitionScheme"] == PARTITION_SCHEME,
             "partitionScheme does not match the OTA layout")
-    require(info["keyId"] == KEY_ID, "keyId does not match this release key")
+    require(info["keyId"] in (KEY_ID, NEW_KEY_ID),
+            "keyId is not a trusted OpenOS release key")
     require(isinstance(info["channel"], str) and
             info["channel"] in {"stable", "beta", "dev"}, "invalid channel")
     require(isinstance(info["releaseType"], str) and

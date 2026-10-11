@@ -4,7 +4,7 @@
 # OpenOS home screen — fully OSA. Loaded by main.cpp into osaApp whenever the
 # device transitions to STATE_HOMESCREEN. Tap-launches via app.launch (then
 # exit()), long-press opens the context menu, a held drag reorders/folds
-# icons. Twelve tiles per page; swipe sideways to page, drag a tile to the
+# tiles. Twelve tiles per page; swipe sideways to page, drag a tile to the
 # screen edge to carry it to the next page.
 
 wait(80)
@@ -14,6 +14,7 @@ var lastMin   = time.min()
 var dragIdx   = -1
 var dragX     = 0
 var dragY     = 0
+var lastDragDraw = 0
 var pendingMv = -1
 var page      = 0
 var perPage   = 12
@@ -95,12 +96,6 @@ def drawTileAt(i, x, y)
   # Tile background — use packed 565 directly from the native color.
   setcolor565(home.appColor(i))
   rrect(x, y, 46, 46, 12)
-  # Built-in icon from the script's #appIcon header, if it has one.
-  var ic = home.appIcon(i)
-  if len(ic) > 0 then
-    setcolor(255, 255, 255)
-    ui.icon(ic, x + 23, y + 23, 26, home.appColor(i))
-  end
   # Folder mini-grid (up to 4 children, 2x2). int() casts — OSA divides as
   # double so j/2 would be 0.5 for j=1 and the row would shift by 9 px.
   if home.appIsFolder(i) == 1 then
@@ -265,11 +260,6 @@ def folderView(idx)
     rrect(x + 2, y + 3, 46, 46, 12)
     setcolor565(home.folderAppColor(idx, i))
     rrect(x, y, 46, 46, 12)
-    var fic = home.folderAppIcon(idx, i)
-    if len(fic) > 0 then
-      setcolor(255, 255, 255)
-      ui.icon(fic, x + 23, y + 23, 26, home.folderAppColor(idx, i))
-    end
     fontsize(2)
     textcolor(0, 0, 0)
     textc(x + 24, y + 61, home.folderAppName(idx, i))
@@ -316,7 +306,7 @@ end
 # ─── App drawer with search ─────────────────────────────────────────────────
 # home.sortedAt walks every page and folder natively and hands back the k-th
 # app in alphabetical order whose name contains the query: want 0 name,
-# 1 path, 2 colour, 3 icon; home.sortedCount gives the total.
+# 1 path, 2 colour; home.sortedCount gives the total.
 var query = ""
 
 def matchAt(k, want)
@@ -347,11 +337,6 @@ def drawDrawer(first)
     smooth(1)
     rrect(18, y, 28, 28, 8)
     smooth(0)
-    var ic = matchAt(k, 3)
-    if len(ic) > 0 then
-      setcolor(255, 255, 255)
-      ui.icon(ic, 32, y + 14, 16, matchAt(k, 2))
-    end
     fontsize(2)
     textcolor565(theme.text())
     textml(56, y + 14, textfit(matchAt(k, 0), 160))
@@ -514,8 +499,11 @@ loop
         if cx != dragX or cy != dragY then
           dragX = cx
           dragY = cy
-          drawAll()
-          drawTileAt(idx, cx - 23, cy - 23)
+          if millis() - lastDragDraw >= 50 then
+            drawAll()
+            drawTileAt(idx, cx - 23, cy - 23)
+            lastDragDraw = millis()
+          end
         end
         if cx < 14 or cx > 226 then
           if edgeAt < 0 then edgeAt = millis() end
@@ -531,6 +519,7 @@ loop
               page = target
               drawAll()
               drawTileAt(idx, cx - 23, cy - 23)
+              lastDragDraw = millis()
               var stay = 1
               while stay == 1 do
                 if touch.down() == 0 then stay = 0 end
@@ -605,8 +594,7 @@ loop
             home.saveOrder()
           end
           drawAll()
-        end
-        if pendingMv == -1 then
+        else
           if home.appIsFolder(idx) == 1 then
             folderView(idx)
             drawAll()

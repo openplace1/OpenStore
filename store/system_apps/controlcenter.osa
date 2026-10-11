@@ -10,6 +10,9 @@ while touch.down() == 1 do wait(20) end
 wait(120)
 
 var bright = getbright()
+var brightTarget = bright
+var brightTracking = 0
+var brightDrawAt = 0
 var accent = theme.accent()
 var purple = color.rgb(88, 86, 214)
 var green = color.rgb(52, 199, 89)
@@ -94,18 +97,20 @@ def ageText(s)
 end
 
 def notificationList()
+  var page = 0
   while 1 == 1 do
     bg565(theme.bg())
     ui.backHeader("Notifications")
     var n = notify.count()
+    if page * 6 >= n and page > 0 then page = page - 1 end
     if n == 0 then
       fontsize(2)
       textcolor565(theme.hint())
       textc(120, 160, "No notifications")
     end
-    var i = 0
-    while i < n do
-      var y = 60 + i * 30
+    var i = page * 6
+    while i < n and i < page * 6 + 6 do
+      var y = 60 + (i - page * 6) * 30
       ui.card(12, y, 216, 26, 10)
       fontsize(1)
       textcolor565(theme.text())
@@ -114,15 +119,31 @@ def notificationList()
       textmr(218, y + 9, ageText(notify.age(i)))
       i = i + 1
     end
-    if n > 0 then ui.button(60, 268, 120, 36, "Clear all", 1) end
+    if n > 6 then
+      if page > 0 then ui.button(14, 242, 70, 28, "Prev", 1) end
+      if (page + 1) * 6 < n then ui.button(156, 242, 70, 28, "Next", 1) end
+      fontsize(1)
+      textcolor565(theme.hint())
+      textc(120, 256, str(page + 1) + "/" + str(int((n + 5) / 6)))
+    end
+    if n > 0 then ui.button(60, 280, 120, 32, "Clear all", 1) end
     var done = 0
     while done == 0 do
       if touch.down() == 1 and ui.backTapped() == 1 then
         while touch.down() == 1 do wait(20) end
         return
       end
-      if n > 0 and touch.tap(60, 268, 120, 36) == 1 then
+      if n > 6 and page > 0 and touch.tap(14, 242, 70, 28) == 1 then
+        page = page - 1
+        done = 1
+      end
+      if n > 6 and (page + 1) * 6 < n and touch.tap(156, 242, 70, 28) == 1 then
+        page = page + 1
+        done = 1
+      end
+      if n > 0 and touch.tap(60, 280, 120, 32) == 1 then
         notify.clear()
+        page = 0
         done = 1
       end
       wait(30)
@@ -154,7 +175,7 @@ def drawAll()
   drawWifi()
   drawRestart()
   drawTheme()
-  drawSync(syncState(), 0)
+  drawSync(syncState(), time.synced())
   drawNotifications()
 end
 
@@ -210,12 +231,26 @@ loop
       var v = int((touch.x() - 26) * 245 / 188) + 10
       if v < 10 then v = 10 end
       if v > 255 then v = 255 end
-      if v != bright then
-        bright = v
+      brightTracking = 1
+      brightTarget = v
+      var delta = v - bright
+      if delta < 0 then delta = 0 - delta end
+      if v != bright and (delta >= 3 or millis() - brightDrawAt >= 80) then
+        bright = brightTarget
         sys.brightness(bright)
         drawBrightness()
+        brightDrawAt = millis()
       end
     end
+  end
+  if brightTracking == 1 and touch.down() == 0 then
+    brightTracking = 0
+    if brightTarget != bright then
+      bright = brightTarget
+      sys.brightness(bright)
+      drawBrightness()
+    end
+    touch.clearTap()
   end
   wait(20)
 end

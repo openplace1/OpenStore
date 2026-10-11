@@ -8,7 +8,7 @@
       },
       "developer": "openplace1",
       "summary": "OpenOS home screen and app launcher.",
-      "description": "Updates the OpenOS home screen, app grid, folders, icon ordering and app context menu.",
+      "description": "Updates the OpenOS home screen, app grid, folders, tile ordering and app context menu.",
       "appColor": "#0A84FF"
     },
     {

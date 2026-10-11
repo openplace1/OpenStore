@@ -10,7 +10,7 @@ includes an OPK URL, its SHA-256 digest and a monotonically increasing
 |---|---|
 | `schema` | Catalog schema, currently `1` |
 | `apps` | Array of published package entries (maximum 64 on device) |
-| `keyId` | Release key that signed the catalog (`openos-release-2026-02`) |
+| `keyId` | Release key that signed the catalog (`openos-release-2026-02` or `openos-release-2026-10`, depending on firmware trust) |
 | `signature` | Base64 DER ECDSA P-256 signature; must be the last field |
 | `id`, `name`, `scope` | Must agree with the OPK manifest |
 | `version`, `versionCode` | Display version and update ordering |

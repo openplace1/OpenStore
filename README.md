@@ -3,6 +3,43 @@
 This repository hosts the OpenStore catalog and OPK packages separately from
 the OpenOS firmware source.
 
+## Release-key rotation (2026-10)
+
+The private key for `openos-release-2026-02` was lost. A replacement P-256 key
+(`openos-release-2026-10`) signs a separate release staged at:
+
+- `update/info-v2.json` and `update/firmware-28.bin`
+- `store/catalog-v2.json` and `store/packages-v2/*.opk`
+
+The legacy `info.json`, `catalog.json` and `packages/` stay in place for
+devices that trust only the old key. The staged v2 URLs are **not live** until
+these files are published to `openplace1/OpenStore` on GitHub.
+
+An existing device cannot install this release by OTA: its current firmware
+does not trust the replacement key. Flash the complete OpenOS 1.7.2 layout
+once over a USB data connection, including the partition table. That firmware
+trusts both keys. After the v2 files are published, configure these sources:
+
+```text
+https://raw.githubusercontent.com/openplace1/OpenStore/main/update/info-v2.json
+https://raw.githubusercontent.com/openplace1/OpenStore/main/store/catalog-v2.json
+https://raw.githubusercontent.com/openplace1/OpenStore/main/store/packages-v2/
+```
+
+The first URL is the OTA source in Settings. The second is
+`store_catalog_url`; the third is `store_system_prefix` in `/user/config.ini`
+on the SD card. Keep an access-controlled backup of the new private key
+outside Git. Its checked-in public key is
+`update/openos-release-2026-10-public.pem`.
+
+Verify the staged feed before publishing:
+
+```text
+python tools/build_update.py --verify --info update/info-v2.json --public-key update/openos-release-2026-10-public.pem
+python tools/build_opk.py --verify --catalog store/catalog-v2.json --packages-dir store/packages-v2 --public-key update/openos-release-2026-10-public.pem --key-id openos-release-2026-10
+python -m unittest discover -s test -p "test_*.py" -v
+```
+
 ## Publish
 
 Run from the repository root:
@@ -104,5 +141,5 @@ an old firmware filename: a device may have cached an older signed manifest.
 | `signature` | Generated base64 DER ECDSA P-256 signature |
 
 The complete JSON document must be at most 4 KB and uses UTF-8/LF. Changing the
-public PEM alone does not rotate trust: a future OpenOS build must first embed
-the new public key and be delivered with the currently trusted key.
+public PEM alone does not rotate trust. When the old signing key is unavailable,
+the firmware that embeds the replacement public key must be flashed over USB.

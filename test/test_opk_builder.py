@@ -45,6 +45,18 @@ def generate_release_keypair(directory: Path) -> tuple[Path, Path]:
 
 
 class OpkBuilderTests(unittest.TestCase):
+    def test_osa_function_limit_matches_runtime(self) -> None:
+        source = b"".join(f"def f{i}()\n  return {i}\nend\n".encode()
+                          for i in range(build_opk.MAX_OSA_FUNCS))
+        build_opk.validate_osa_entry(source, "test.app")
+        with self.assertRaisesRegex(SystemExit, "defines 25 functions"):
+            build_opk.validate_osa_entry(source + b"def extra()\nend\n", "test.app")
+
+    def test_packaged_system_scripts_fit_osa_limits(self) -> None:
+        for script in (ROOT / "store" / "system_apps").glob("*.osa"):
+            with self.subTest(script=script.name):
+                build_opk.validate_osa_entry(script.read_bytes(), script.stem)
+
     def test_osa_discovery_hash_is_independent_of_line_endings(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -192,6 +204,22 @@ class OpkBuilderTests(unittest.TestCase):
                 self.assertEqual(manifest["minSdk"], item["minSdk"])
                 self.assertEqual(manifest["minOpenOS"], item["minOpenOS"])
                 self.assertIn(manifest["entry"], archive.namelist())
+
+    @unittest.skipUnless(HAS_CRYPTOGRAPHY, "cryptography is not installed")
+    def test_rotated_feed_packages_match_signed_catalog(self) -> None:
+        document = (ROOT / "store" / "catalog-v2.json").read_bytes()
+        catalog = build_opk.verify_catalog(
+            document, ROOT / "update" / "openos-release-2026-10-public.pem",
+            "openos-release-2026-10")
+        self.assertEqual(len(catalog["apps"]), 16)
+        for item in catalog["apps"]:
+            package = ROOT / "store" / "packages-v2" / f"{item['id']}.opk"
+            self.assertEqual(hashlib.sha256(package.read_bytes()).hexdigest(),
+                             item["sha256"])
+            with ZipFile(package) as archive:
+                self.assertIsNone(archive.testzip())
+                manifest = json.loads(archive.read("manifest.json"))
+                self.assertEqual(manifest["versionCode"], item["versionCode"])
 
 
 if __name__ == "__main__":
