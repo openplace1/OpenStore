@@ -107,7 +107,7 @@ class UpdateBuilderTests(unittest.TestCase):
             ROOT / "update" / "info-v2.json",
             ROOT / "update" / "openos-release-2026-10-public.pem")
         self.assertEqual(info["keyId"], build_update.NEW_KEY_ID)
-        self.assertEqual(info["versionCode"], 28)
+        self.assertEqual(info["versionCode"], 29)
 
 
 if __name__ == "__main__":

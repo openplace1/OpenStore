@@ -8,17 +8,18 @@ the OpenOS firmware source.
 The private key for `openos-release-2026-02` was lost. A replacement P-256 key
 (`openos-release-2026-10`) signs a separate release staged at:
 
-- `update/info-v2.json` and `update/firmware-28.bin`
+- `update/info-v2.json` and the immutable `update/firmware-29.bin`
 - `store/catalog-v2.json` and `store/packages-v2/*.opk`
 
 The legacy `info.json`, `catalog.json` and `packages/` stay in place for
-devices that trust only the old key. The staged v2 URLs are **not live** until
-these files are published to `openplace1/OpenStore` on GitHub.
+devices that trust only the old key. The v2 URLs are published side by side
+in `openplace1/OpenStore` on GitHub. The previous v2 firmware binary
+(`firmware-28.bin`) remains immutable; the current release points to 29.
 
 An existing device cannot install this release by OTA: its current firmware
-does not trust the replacement key. Flash the complete OpenOS 1.7.2 layout
+does not trust the replacement key. Flash the complete OpenOS 1.7.3 layout
 once over a USB data connection, including the partition table. That firmware
-trusts both keys. After the v2 files are published, configure these sources:
+trusts both keys and uses the v2 feeds by default. The v2 addresses are:
 
 ```text
 https://raw.githubusercontent.com/openplace1/OpenStore/main/update/info-v2.json
@@ -28,8 +29,8 @@ https://raw.githubusercontent.com/openplace1/OpenStore/main/store/packages-v2/
 
 The first URL is the OTA source in Settings. The second is
 `store_catalog_url`; the third is `store_system_prefix` in `/user/config.ini`
-on the SD card. Keep an access-controlled backup of the new private key
-outside Git. Its checked-in public key is
+on the SD card. Saved custom values override the defaults. Keep an
+access-controlled backup of the new private key outside Git. Its public key is
 `update/openos-release-2026-10-public.pem`.
 
 Verify the staged feed before publishing:
