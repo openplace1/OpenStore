@@ -27,8 +27,8 @@ except ImportError as exc:  # pragma: no cover - exercised by CLI environments
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_INFO = ROOT / "update" / "info.json"
-DEFAULT_PUBLIC_KEY = ROOT / "update" / "openos-release-2026-02-public.pem"
+DEFAULT_INFO = ROOT / "update" / "info-v2.json"
+DEFAULT_PUBLIC_KEY = ROOT / "update" / "openos-release-2026-10-public.pem"
 KEY_ID = "openos-release-2026-02"
 NEW_KEY_ID = "openos-release-2026-10"
 TARGET = "denky32-wroom32"

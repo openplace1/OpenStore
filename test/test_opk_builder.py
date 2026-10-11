@@ -161,7 +161,8 @@ class OpkBuilderTests(unittest.TestCase):
         catalog = json.loads(unsigned)
         self.assertEqual(catalog["keyId"], build_opk.KEY_ID)
         if HAS_CRYPTOGRAPHY:
-            build_opk.verify_catalog(document, build_opk.DEFAULT_PUBLIC_KEY)
+            build_opk.verify_catalog(
+                document, ROOT / "update" / "openos-release-2026-02-public.pem")
         self.assertEqual(catalog["schema"], 1)
         self.assertGreater(len(catalog["apps"]), 0)
 

@@ -23,9 +23,9 @@ from zipfile import BadZipFile, ZIP_STORED, ZipFile, ZipInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 STORE = ROOT / "store"
-OUTPUT = STORE / "packages"
+OUTPUT = STORE / "packages-v2"
 APPS_DIR = ROOT / "apps"
-DEFAULT_PACKAGE_BASE = "https://raw.githubusercontent.com/openplace1/OpenOS/main/store/packages"
+DEFAULT_PACKAGE_BASE = "https://raw.githubusercontent.com/openplace1/OpenStore/main/store/packages-v2"
 
 MAX_PACKAGE_BYTES = 8 * 1024 * 1024
 MAX_TOTAL_BYTES = 8 * 1024 * 1024
@@ -43,7 +43,7 @@ MAX_OSAC_BYTES = 96 * 1024
 # compact object {"schema":1,"apps":[...],"keyId":"..."} exactly as emitted
 # below, so the signed text must never be re-serialized after signing.
 KEY_ID = "openos-release-2026-02"
-DEFAULT_PUBLIC_KEY = ROOT / "update" / "openos-release-2026-02-public.pem"
+DEFAULT_PUBLIC_KEY = ROOT / "update" / "openos-release-2026-10-public.pem"
 CATALOG_SIGNATURE_PREFIX = b"OPENOS-CATALOG-V1\n"
 CATALOG_SIGNATURE_MARKER = b',"signature":"'
 
@@ -622,9 +622,9 @@ def main() -> None:
     parser.add_argument("--verify", action="store_true",
                         help="verify the signature of store/catalog.json and exit")
     parser.add_argument("--public-key", type=Path, default=DEFAULT_PUBLIC_KEY)
-    parser.add_argument("--key-id", default=KEY_ID,
+    parser.add_argument("--key-id", default="openos-release-2026-10",
                         choices=(KEY_ID, "openos-release-2026-10"))
-    parser.add_argument("--catalog", type=Path, default=STORE / "catalog.json")
+    parser.add_argument("--catalog", type=Path, default=STORE / "catalog-v2.json")
     parser.add_argument("--packages-dir", type=Path, default=OUTPUT)
     parser.add_argument("--package-base-url", type=str)
     args = parser.parse_args()

@@ -51,23 +51,25 @@ python tools/build_opk.py --verify
 python -m unittest discover -s test -p "test_*.py" -v
 ```
 
-`build_opk.py` signs `store/catalog.json` with the same offline ECDSA P-256
+`build_opk.py` signs `store/catalog-v2.json` with the same offline ECDSA P-256
 release key as the firmware manifest (`--key` needs the `cryptography`
 package). Without `--key` it still rebuilds the packages and writes an
 unsigned catalog for local work, but OpenOS 1.2 and later refuse to use it
-and `test_published_packages_match_catalog` fails until the file is signed.
+and the rotated-feed test fails until the file is signed. The default builder
+paths and key ID target v2; use explicit options only when verifying the
+preserved legacy feed.
 
 Commit and push these generated paths to `main`:
 
-- `store/catalog.json`
-- `store/packages/*.opk`
-- `update/info.json`
+- `store/catalog-v2.json`
+- `store/packages-v2/*.opk`
+- `update/info-v2.json`
 - `update/firmware-<versionCode>.bin`
 
 The configured device catalog URL is:
 
 ```text
-https://raw.githubusercontent.com/openplace1/OpenStore/main/store/catalog.json
+https://raw.githubusercontent.com/openplace1/OpenStore/main/store/catalog-v2.json
 ```
 
 Package URLs are generated with the base URL defined in `store/build.json`.
@@ -78,7 +80,7 @@ after one confirmation.
 
 ## Publish a firmware OTA release
 
-OpenOS reads [`update/info.json`](update/info.json). Edit its human release
+OpenOS 1.7.3 reads [`update/info-v2.json`](update/info-v2.json). Edit its human release
 metadata, build OpenOS, copy the resulting binary under a new immutable name,
 then let the release tool fill `size`, `sha256` and `signature`:
 
@@ -88,10 +90,11 @@ pio run
 
 # Back in the OpenStore repository:
 python -m pip install -r requirements-dev.txt
-cp ../OpenOS/.pio/build/denky32/firmware.bin update/firmware-2.bin
+cp ../OpenOS/.pio/build/denky32/firmware.bin update/firmware-30.bin
 python tools/build_update.py --key /secure/outside-git/openos-release-private.pem
 python tools/build_update.py --verify
-python tools/build_opk.py
+python tools/build_opk.py --key /secure/outside-git/openos-release-private.pem
+python tools/build_opk.py --verify
 python -m unittest discover -s test -p "test_*.py" -v
 ```
 
@@ -116,7 +119,7 @@ accepts only `stable`. `releaseType` is `major`, `minor`, `patch` or `security`.
 OpenOS release number. Do not edit any field after signing.
 
 Publish the uniquely named firmware and signed manifest in one commit. On a
-non-atomic host, upload the firmware first and `info.json` last. Never overwrite
+non-atomic host, upload the firmware first and `info-v2.json` last. Never overwrite
 an old firmware filename: a device may have cached an older signed manifest.
 
 ### `info.json` fields

@@ -1,6 +1,8 @@
 # OpenStore package repository
 
-OpenStore reads [`catalog.json`](catalog.json) from any configured HTTPS host.
+OpenOS 1.7.3 reads [`catalog-v2.json`](catalog-v2.json) by default. Older
+firmware continues to read the preserved [`catalog.json`](catalog.json).
+OpenStore can read a signed catalog from any configured HTTPS host.
 The catalog and OPK files may live in a separate repository, web server or CDN;
 they do not need to be published with the firmware source. Each catalog entry
 includes an OPK URL, its SHA-256 digest and a monotonically increasing
@@ -60,7 +62,7 @@ python tools/build_opk.py
 ```
 
 The tool creates deterministic packages, calculates SHA-256 and rewrites the
-catalog. Upload `catalog.json` and the generated `.opk` files to the selected
+v2 catalog. Upload `catalog-v2.json` and the generated `packages-v2/*.opk` to the selected
 host. On the device, set these keys in `/user/config.ini`:
 
 ```ini
@@ -73,11 +75,11 @@ host. Both values can also be changed by privileged OSA code through
 `store.setSource()` and `store.setSystemSource()`.
 
 Firmware releases are separate from OPK packages and live under `../update/`.
-The repository-root README documents the signed `info.json` schema, release-key
+The repository-root README documents the signed `info-v2.json` schema, release-key
 handling and `tools/build_update.py` workflow. Publish the versioned firmware,
 signed manifest, rebuilt Settings OPK and rewritten catalog together. On hosts
 without atomic deploys, upload the firmware and OPK first, then publish
-`catalog.json` and `info.json` last.
+`catalog-v2.json` and `info-v2.json` last.
 
 ## Installer limits
 

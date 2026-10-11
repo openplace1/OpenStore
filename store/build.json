@@ -1,5 +1,5 @@
 {
-  "packageBaseUrl": "https://raw.githubusercontent.com/openplace1/OpenStore/main/store/packages",
+  "packageBaseUrl": "https://raw.githubusercontent.com/openplace1/OpenStore/main/store/packages-v2",
   "packages": [
     {
       "manifest": "store/manifests/openos.home.json",
